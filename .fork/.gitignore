@@ -1,2 +1,9 @@
 # Deployment-specific settings (registry address, deploy repo path). Never committed.
 build.env
+dev/token
+dev/state
+dev/node_modules
+dev/package.json
+dev/package-lock.json
+dev/crawl-report.json
+dev/shots

@@ -16,17 +16,28 @@ ARG BASE_IMAGE=fireflyiii/base@sha256:10de1d5989ae984cd7302ffbdfa6488ed881cf0f16
 ARG NODE_IMAGE=node:24-alpine
 
 # ---------------------------------------------------------------------------
-# 1. Frontend: public/build (v2 layout, Vite). The v1 layout's assets are
-#    committed under public/v1 and need no build.
+# 1. Frontend. The v1 layout (default) commits its CSS/fonts/vendor libs under public/v1
+#    but NOT its Laravel-Mix bundles (public/v1/js/{app,app_vue,create_*,edit_*,profile}.js,
+#    webhooks/, exchange-rates/, administrations/ — see .gitignore); the v2 layout builds
+#    public/build with Vite. Both are produced here, exactly as upstream's release job does.
 # ---------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS assets
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY patches ./patches
 COPY resources ./resources
+# v1 is built from an isolated install inside its own directory: the workspace tree resolves
+# vue-loader 17 (Vue 3 only) for it, which cannot compile Vue 2.7 single-file components
+# ("Cannot read properties of undefined (reading 'styles')"); Laravel Mix needs vue-loader 15
+# for `vue({version: 2})` and only auto-installs it when none is present. Re-check this
+# after every upstream sync: if resources/assets/v1/package.json moves to vue-loader ^15 or
+# to Vite, the extra install becomes unnecessary.
 RUN mkdir -p public \
  && npm ci --workspace resources/assets/v2 --no-audit --no-fund \
- && npm run build --workspace resources/assets/v2
+ && npm run build --workspace resources/assets/v2 \
+ && cd resources/assets/v1 \
+ && npm install --no-save --no-audit --no-fund --workspaces=false vue-loader@^15.11.1 \
+ && npm run prod
 
 # ---------------------------------------------------------------------------
 # 2. PHP dependencies, resolved on the exact PHP/extension set of the runtime
@@ -67,6 +78,7 @@ WORKDIR /var/www/html
 COPY --chown=www-data:www-data . /var/www/html
 COPY --from=vendor --chown=www-data:www-data /var/www/html/vendor /var/www/html/vendor
 COPY --from=assets --chown=www-data:www-data /src/public/build /var/www/html/public/build
+COPY --from=assets --chown=www-data:www-data /src/public/v1/js /var/www/html/public/v1/js
 
 RUN composer dump-autoload --optimize --no-scripts --no-interaction \
  && chmod -R 775 /var/www/html/storage

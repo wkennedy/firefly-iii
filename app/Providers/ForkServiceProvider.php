@@ -35,6 +35,7 @@ use FireflyIII\Fork\Console\Commands\PairTransfers;
 use FireflyIII\Fork\Console\Commands\PayeesMerge;
 use FireflyIII\Fork\Console\Commands\PayeesPruneEmpty;
 use FireflyIII\Fork\Console\Commands\PurgeDeletedTransactions;
+use FireflyIII\Fork\Console\Commands\SeedDevData;
 use FireflyIII\Fork\Dedup\ExternalIdObserver;
 use FireflyIII\Fork\Factory\AccountFactory;
 use FireflyIII\Fork\Factory\TransactionJournalFactory;
@@ -73,7 +74,8 @@ final class ForkServiceProvider extends ServiceProvider
                 PairTransfers::class,
                 PayeesMerge::class,
                 PayeesPruneEmpty::class,
-                PurgeDeletedTransactions::class
+                PurgeDeletedTransactions::class,
+                SeedDevData::class
             ]);
         }
     }

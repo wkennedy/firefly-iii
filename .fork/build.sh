@@ -23,6 +23,18 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Fail early and clearly when this shell cannot reach the Docker daemon (typically: the user was
+# added to the `docker` group but this login session predates it → `newgrp docker` or re-login).
+if ! docker info >/dev/null 2>&1; then
+  echo "[x] cannot talk to the Docker daemon from this shell." >&2
+  if id -nG "$(id -un)" | tr ' ' '\n' | grep -qx docker && [[ -S /var/run/docker.sock ]] && ! groups | tr ' ' '\n' | grep -qx docker; then
+    echo "    You are in the 'docker' group, but this session does not have it yet: run 'newgrp docker' or log out and back in." >&2
+  else
+    echo "    Check: docker ps   (is the daemon running? is your user in the 'docker' group?)" >&2
+  fi
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 [[ -f .fork/build.env ]] && set -a && source .fork/build.env && set +a
 

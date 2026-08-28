@@ -49,6 +49,8 @@ Upstream builds `fireflyiii/core` out-of-tree (Azure DevOps): `FROM fireflyiii/b
 
 **CI:** `.github/workflows/fork-ci.yml` (fork-owned, new file) runs on pushes to `custom`/`feature/**` and PRs to `custom`: mago format/lint on fork paths, the isolation guard rails (lockfiles, workflows, migrations, FORK markers), unit + integration suites via `.fork/phpunit.xml`, then builds and smoke-tests the image. `.fork/build.sh --push` refuses unless the commit is clean, on `origin`, and its `tests` check-run is green (`--skip-ci-check` / `FORK_CI_CHECK=` override). Upstream's own workflows should stay **disabled** in the fork's GitHub Actions settings (see `.fork/README.md`).
 
+Local development: `.fork/dev-up.sh [--seed | --dump <pg_dump>] [--flags K=V,…]` runs the image against a throwaway PostgreSQL on an egress-less Docker network (`.fork/dev-down.sh` removes it); `firefly-iii:fork:seed-dev-data` makes deterministic bank-feed-shaped data. See `.fork/README.md` → Local development.
+
 Registry address, deployment-repo path and any cluster-specific commands live **only** in `.fork/build.env` (gitignored) and in the private deployment repo it points to — keep this public repo free of network/host specifics. The deployment repo pins the image tag with a kustomize `images:` override, so its manifests keep naming `fireflyiii/core`. After `/sync-upstream`, bump `BASE_IMAGE` in `.fork/docker/Dockerfile` (digest of the current `fireflyiii/base:latest`) and re-diff `.fork/docker/entrypoint.sh` against upstream's.
 
 ## Commands
@@ -75,7 +77,8 @@ php artisan blade:lint         # run by upstream CI; provided by a vendor packag
 
 # frontend (npm workspaces: resources/assets/v1 and v2)
 npm install                                   # root; runs patch-package (patches/admin-lte+4.0.0.patch)
-npm --workspace resources/assets/v1 run prod  # Laravel Mix → public/v1
+npm --workspace resources/assets/v1 run prod  # Laravel Mix → public/v1 — FAILS from the workspace tree (vue-loader 17 is Vue-3-only);
+#   use: cd resources/assets/v1 && npm install --no-save --workspaces=false vue-loader@^15.11.1 && npm run prod   (what .fork/docker/Dockerfile does)
 npm --workspace resources/assets/v2 run build # Vite     → public/build
 
 # app

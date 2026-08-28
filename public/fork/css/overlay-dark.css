@@ -1,0 +1,114 @@
+/*
+ * overlay-dark.css
+ * Copyright (c) 2026 the fork authors.
+ *
+ * This file is part of a fork of Firefly III (https://github.com/firefly-iii).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see https://www.gnu.org/licenses/.
+ */
+
+/*
+ * FORK: dark palette for overlay.css. Included by resources/views/fork/layout/overlay.twig with the
+ * same darkMode logic upstream uses for skin-dark.min.css (always, or media="(prefers-color-scheme: dark)").
+ * Only tokens plus the few Bootstrap 3 components whose colours are baked in (alerts, callouts, labels).
+ */
+
+:root {
+    color-scheme: dark;
+
+    --fk-bg: #0f1216;
+    --fk-surface: #171b21;
+    --fk-surface-2: #1e232a;
+    --fk-border: #2a313a;
+    --fk-border-strong: #353d47;
+    --fk-text: #e4e7eb;
+    --fk-muted: #98a2b3;
+
+    --fk-accent: #5b9ce6;
+    --fk-accent-hover: #79b0ee;
+    --fk-accent-soft: rgba(91, 156, 230, 0.16);
+    --fk-link: #79b3f0;
+
+    --fk-success: #22a55b;
+    --fk-success-hover: #2bb968;
+    --fk-danger: #e5484d;
+    --fk-danger-hover: #ec5f63;
+    --fk-info: #2c9bd6;
+    --fk-info-hover: #46abe0;
+    --fk-warning: #e0921a;
+    --fk-warning-hover: #eea43a;
+
+    --fk-money-positive: #4ade80;
+    --fk-money-negative: #f87171;
+    --fk-money-transfer: #79b3f0;
+
+    --fk-icon-aqua: #22c1dc;
+    --fk-icon-teal: #2dd4bf;
+    --fk-icon-green: #4ade80;
+    --fk-icon-blue: #60a5fa;
+
+    --fk-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --fk-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+    --fk-focus: 0 0 0 3px rgba(91, 156, 230, 0.3);
+}
+
+/* Bootstrap 3 alerts/callouts ship pastel backgrounds with dark text; tint them instead. */
+.skin-firefly-iii .alert-success { background: rgba(34, 165, 91, 0.14); border-color: rgba(34, 165, 91, 0.45); color: #86efac; }
+.skin-firefly-iii .alert-info    { background: rgba(44, 155, 214, 0.14); border-color: rgba(44, 155, 214, 0.45); color: #93c5fd; }
+.skin-firefly-iii .alert-warning { background: rgba(224, 146, 26, 0.14); border-color: rgba(224, 146, 26, 0.45); color: #fcd34d; }
+.skin-firefly-iii .alert-danger  { background: rgba(229, 72, 77, 0.14);  border-color: rgba(229, 72, 77, 0.45);  color: #fca5a5; }
+.skin-firefly-iii .alert a,
+.skin-firefly-iii .alert-success > a,
+.skin-firefly-iii .alert-success a {
+    color: inherit;
+    text-decoration: underline;
+}
+.skin-firefly-iii .callout {
+    background: var(--fk-surface-2);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .callout.callout-info    { border-left-color: var(--fk-info); }
+.skin-firefly-iii .callout.callout-warning { border-left-color: var(--fk-warning); }
+.skin-firefly-iii .callout.callout-danger  { border-left-color: var(--fk-danger); }
+.skin-firefly-iii .callout.callout-success { border-left-color: var(--fk-success); }
+.skin-firefly-iii .text-warning,
+.skin-firefly-iii a.text-warning:focus { color: #fcd34d; }
+.skin-firefly-iii .text-danger  { color: #fca5a5; }
+.skin-firefly-iii .text-success { color: #86efac; }
+.skin-firefly-iii .text-info    { color: #93c5fd; }
+.skin-firefly-iii .text-primary { color: var(--fk-accent); }
+.skin-firefly-iii .close {
+    color: var(--fk-text);
+    text-shadow: none;
+    opacity: 0.5;
+}
+.skin-firefly-iii .modal-backdrop {
+    background: #000;
+}
+.skin-firefly-iii .introjs-tooltip {
+    background: var(--fk-surface);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .introjs-tooltip .introjs-arrow.top { border-bottom-color: var(--fk-surface); }
+.skin-firefly-iii .introjs-tooltip .introjs-arrow.bottom { border-top-color: var(--fk-surface); }
+.skin-firefly-iii .introjs-tooltip .introjs-arrow.left { border-right-color: var(--fk-surface); }
+.skin-firefly-iii .introjs-tooltip .introjs-arrow.right { border-left-color: var(--fk-surface); }
+.skin-firefly-iii .daterangepicker .calendar-table,
+.skin-firefly-iii .daterangepicker td.off,
+.skin-firefly-iii .daterangepicker td.available:hover,
+.skin-firefly-iii .daterangepicker th.available:hover {
+    background: var(--fk-surface-2);
+    color: var(--fk-text);
+    border-color: var(--fk-border);
+}

@@ -73,6 +73,7 @@
     {% endif %}
     {# Firefly III customisations #}
     <link href="v1/css/firefly.css?v={{ FF_BUILD_TIME }}" rel="stylesheet" type="text/css" nonce="{{ JS_NONCE }}">
+    {# FORK: optional UI overlay (FORK_UI_OVERLAY) #}{% include 'fork.layout.overlay' %}
 
     {# Extra CSS for the demo: #}
     {% if not shownDemo %}

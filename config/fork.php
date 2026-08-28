@@ -23,9 +23,9 @@
 declare(strict_types=1);
 
 /*
- * FORK: feature switches for fork behaviour. Every fork feature defaults to OFF here and is
- * enabled per deployment through the environment, so an upstream sync or a bad rollout can be
- * neutralised without a code change.
+ * FORK: feature switches for fork behaviour. Every fork feature that changes behaviour defaults to
+ * OFF here and is enabled per deployment through the environment, so an upstream sync or a bad
+ * rollout can be neutralised without a code change (the purely visual ui_overlay is the exception).
  */
 return [
     // Reserve every transaction's external_id in fork_external_ids (unique per user group) inside
@@ -66,5 +66,11 @@ return [
 
     // Comma-separated names of personal access tokens whose writes count as automation (never
     // teach a learned rule), e.g. the categorizer's token. Case-insensitive.
-    'automation_token_names' => (string) env('FORK_AUTOMATION_TOKEN_NAMES', '')
+    'automation_token_names' => (string) env('FORK_AUTOMATION_TOKEN_NAMES', ''),
+
+    // Modern-look CSS overlay for the v1 (Twig / AdminLTE 2) layout: public/fork/css/overlay*.css,
+    // loaded after firefly.css by resources/views/fork/layout/overlay.twig. Purely visual, no
+    // markup or JS changes, follows the user's dark-mode preference. The one switch that is ON by
+    // default (it changes nothing but looks); FORK_UI_OVERLAY=false restores the stock upstream look.
+    'ui_overlay' => (bool) env('FORK_UI_OVERLAY', true)
 ];

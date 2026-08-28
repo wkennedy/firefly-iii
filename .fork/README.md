@@ -47,6 +47,15 @@ GitHub auto-disables *scheduled* workflows on forks, but not the event-triggered
 **Dependabot off** too (`.github/dependabot.yml` targets a `develop` branch this fork lacks);
 `mergify.yml` and `CODEOWNERS` are inert without the app / those collaborators.
 
+## UI overlay (v1 layout)
+
+The v1 overlay is on by default; `FORK_UI_OVERLAY=false` restores the stock look. It loads `public/fork/css/overlay.css` (+ `overlay-dark.css`, following the user's dark-mode
+preference) after `firefly.css` on every v1 (Twig / AdminLTE 2) page, via a one-line `{# FORK #}` hook in
+`resources/views/layout/default.twig` that includes `resources/views/fork/layout/overlay.twig`. Pure CSS — no
+markup or JavaScript changes — so it can be switched off per deployment and discarded when upstream ships its
+Blade/Bootstrap 5 rewrite (`upstream/adminlte`). The login/register pages are already Blade upstream and are not touched.
+Compare locally: `.fork/dev-up.sh --seed --flags FORK_UI_OVERLAY=false` shows the stock look.
+
 ## Local development
 
 Three layers, cheapest first:

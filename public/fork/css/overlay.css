@@ -1,0 +1,1135 @@
+/*
+ * overlay.css
+ * Copyright (c) 2026 the fork authors.
+ *
+ * This file is part of a fork of Firefly III (https://github.com/firefly-iii).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see https://www.gnu.org/licenses/.
+ */
+
+/*
+ * FORK: a purely visual overlay for the v1 layout (Bootstrap 3 + AdminLTE 2). It is loaded AFTER
+ * firefly.css and the AdminLTE skin (see resources/views/fork/layout/overlay.twig) and only
+ * restyles what is already on the page; no markup or JavaScript changes. Every colour is a custom
+ * property so overlay-dark.css can swap the palette. Selectors are written at the same specificity
+ * as the skin-dark rules they replace (usually `.skin-firefly-iii .x`), so later source order wins.
+ * The login/register pages are already Blade + Bootstrap 5 upstream (layout.v2.session) and are not touched.
+ * Switch: FORK_UI_OVERLAY (config fork.ui_overlay).
+ */
+
+:root {
+    --fk-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --fk-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --fk-bg: #f3f4f6;
+    --fk-surface: #ffffff;
+    --fk-surface-2: #f8f9fb;
+    --fk-border: #e4e7eb;
+    --fk-border-strong: #d0d5db;
+    --fk-text: #1f2933;
+    --fk-muted: #6b7280;
+
+    --fk-accent: #2f6fb5;
+    --fk-accent-hover: #285f9c;
+    --fk-accent-soft: rgba(47, 111, 181, 0.12);
+    --fk-link: #2563a8;
+
+    --fk-success: #16a34a;
+    --fk-success-hover: #15803d;
+    --fk-danger: #dc2626;
+    --fk-danger-hover: #b91c1c;
+    --fk-info: #0284c7;
+    --fk-info-hover: #0369a1;
+    --fk-warning: #d97706;
+    --fk-warning-hover: #b45309;
+
+    --fk-money-positive: #15803d;
+    --fk-money-negative: #c0392b;
+    --fk-money-transfer: #2563a8;
+
+    --fk-icon-aqua: #0891b2;
+    --fk-icon-teal: #0d9488;
+    --fk-icon-green: #16a34a;
+    --fk-icon-blue: #2563eb;
+
+    --fk-radius: 10px;
+    --fk-radius-sm: 6px;
+    --fk-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.04);
+    --fk-shadow-lg: 0 10px 30px rgba(16, 24, 40, 0.14);
+    --fk-focus: 0 0 0 3px var(--fk-accent-soft);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Base: typography and surfaces
+ * ------------------------------------------------------------------------------------------- */
+.skin-firefly-iii {
+    font-family: var(--fk-font);
+    color: var(--fk-text);
+    background-color: var(--fk-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+.skin-firefly-iii h1,
+.skin-firefly-iii h2,
+.skin-firefly-iii h3,
+.skin-firefly-iii h4,
+.skin-firefly-iii h5,
+.skin-firefly-iii h6,
+.skin-firefly-iii .h1,
+.skin-firefly-iii .h2,
+.skin-firefly-iii .h3,
+.skin-firefly-iii .h4,
+.skin-firefly-iii .h5,
+.skin-firefly-iii .h6 {
+    font-family: var(--fk-font);
+    color: var(--fk-text);
+}
+.skin-firefly-iii h3 small,
+.skin-firefly-iii h4 small,
+.skin-firefly-iii .text-muted {
+    color: var(--fk-muted);
+}
+.skin-firefly-iii a {
+    color: var(--fk-link);
+}
+.skin-firefly-iii a:hover,
+.skin-firefly-iii a:focus {
+    color: var(--fk-accent-hover);
+}
+.skin-firefly-iii pre,
+.skin-firefly-iii code {
+    font-family: var(--fk-mono);
+    background: var(--fk-surface-2);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius-sm);
+    color: var(--fk-text);
+}
+.skin-firefly-iii hr {
+    border-top-color: var(--fk-border);
+}
+.skin-firefly-iii ::selection {
+    background: var(--fk-accent-soft);
+}
+.skin-firefly-iii input[type="checkbox"],
+.skin-firefly-iii input[type="radio"] {
+    accent-color: var(--fk-accent);
+}
+
+/* money */
+.skin-firefly-iii .money-neutral { color: var(--fk-muted); }
+.skin-firefly-iii .money-positive { color: var(--fk-money-positive); }
+.skin-firefly-iii .money-negative { color: var(--fk-money-negative); }
+.skin-firefly-iii .money-transfer { color: var(--fk-money-transfer); }
+
+/* ---------------------------------------------------------------------------------------------
+ * Layout: header, sidebar, content, footer
+ * ------------------------------------------------------------------------------------------- */
+.skin-firefly-iii .wrapper,
+.skin-firefly-iii .content-wrapper {
+    background-color: var(--fk-bg);
+}
+
+/* top bar: white surface instead of the blue block */
+.skin-firefly-iii .main-header .navbar {
+    background-color: var(--fk-surface);
+    border-bottom: 1px solid var(--fk-border);
+    min-height: 52px;
+}
+.skin-firefly-iii .main-header .logo {
+    background-color: var(--fk-surface);
+    color: var(--fk-accent);
+    border-bottom: 1px solid var(--fk-border);
+    border-right: 1px solid var(--fk-border);
+    font-family: var(--fk-font);
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    height: 52px;
+    line-height: 52px;
+}
+.skin-firefly-iii .main-header .logo:hover {
+    background-color: var(--fk-surface-2);
+}
+.skin-firefly-iii .main-header .logo strong {
+    font-weight: 700;
+}
+.skin-firefly-iii .main-header .navbar .nav > li > a,
+.skin-firefly-iii .main-header .navbar .sidebar-toggle {
+    color: var(--fk-muted);
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+.skin-firefly-iii .main-header .navbar .nav > li > a:hover,
+.skin-firefly-iii .main-header .navbar .nav > li > a:active,
+.skin-firefly-iii .main-header .navbar .nav > li > a:focus,
+.skin-firefly-iii .main-header .navbar .nav .open > a,
+.skin-firefly-iii .main-header .navbar .nav .open > a:hover,
+.skin-firefly-iii .main-header .navbar .nav .open > a:focus,
+.skin-firefly-iii .main-header .navbar .nav > .active > a,
+.skin-firefly-iii .main-header .navbar .sidebar-toggle:hover {
+    background: var(--fk-surface-2);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .date-range-holder,
+.skin-firefly-iii .dropdown-holder {
+    color: var(--fk-text);
+    padding: 16px 15px;
+}
+.skin-firefly-iii .date-range-holder {
+    font-weight: 500;
+}
+.skin-firefly-iii .dropdown-holder {
+    color: var(--fk-muted);
+}
+
+/* sidebar */
+.skin-firefly-iii .main-sidebar,
+.skin-firefly-iii .left-side {
+    background-color: var(--fk-surface);
+    border-right: 1px solid var(--fk-border);
+    padding-top: 52px;
+}
+.skin-firefly-iii .sidebar-menu > li.header {
+    color: var(--fk-muted);
+    background: transparent;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 16px 20px 6px;
+}
+.skin-firefly-iii .sidebar-menu > li {
+    border-left: 0;
+}
+.skin-firefly-iii .sidebar-menu > li > a {
+    color: var(--fk-text);
+    font-weight: 500;
+    border-left: 0;
+    border-radius: 8px;
+    margin: 1px 10px;
+    padding: 9px 10px 9px 12px;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+.skin-firefly-iii .sidebar-menu > li > a > .fa {
+    width: 22px;
+    color: var(--fk-muted);
+}
+.skin-firefly-iii .sidebar-menu > li:hover > a,
+.skin-firefly-iii .sidebar-menu > li.menu-open > a {
+    color: var(--fk-text);
+    background: var(--fk-surface-2);
+}
+.skin-firefly-iii .sidebar-menu > li.active > a {
+    color: var(--fk-accent);
+    background: var(--fk-accent-soft);
+    font-weight: 600;
+}
+.skin-firefly-iii .sidebar-menu > li.active > a > .fa {
+    color: var(--fk-accent);
+}
+.skin-firefly-iii .sidebar-menu > li.active {
+    border-left-color: transparent;
+}
+.skin-firefly-iii .sidebar-menu > li > .treeview-menu {
+    background: transparent;
+    margin: 0 10px;
+    padding-left: 22px;
+}
+.skin-firefly-iii .sidebar-menu .treeview-menu > li > a {
+    color: var(--fk-muted);
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+.skin-firefly-iii .sidebar-menu .treeview-menu > li > a:hover {
+    color: var(--fk-text);
+    background: var(--fk-surface-2);
+}
+.skin-firefly-iii .sidebar-menu .treeview-menu > li.active > a {
+    color: var(--fk-accent);
+    font-weight: 600;
+}
+.skin-firefly-iii .sidebar-menu > li > a > .pull-right-container > .fa-angle-left {
+    color: var(--fk-muted);
+}
+/* collapsed (mini) sidebar keeps AdminLTE's block geometry */
+@media (min-width: 768px) {
+    .skin-firefly-iii.sidebar-mini.sidebar-collapse .sidebar-menu > li > a {
+        margin: 0;
+        border-radius: 0;
+    }
+    .skin-firefly-iii.sidebar-mini.sidebar-collapse .sidebar-menu > li > .treeview-menu {
+        margin: 0;
+        padding-left: 0;
+        background: var(--fk-surface);
+        border: 1px solid var(--fk-border);
+        border-left: 0;
+    }
+    .skin-firefly-iii.sidebar-mini.sidebar-collapse .sidebar-menu > li:hover > a > span:not(.pull-right) {
+        background: var(--fk-surface) !important;
+        color: var(--fk-text) !important;
+        border: 1px solid var(--fk-border);
+        border-left: 0;
+    }
+}
+/* sidebar search */
+.skin-firefly-iii .sidebar-form {
+    border: 1px solid var(--fk-border);
+    border-radius: 8px;
+    margin: 12px 12px 6px;
+    background: var(--fk-surface-2);
+}
+.skin-firefly-iii .sidebar-form input[type="text"],
+.skin-firefly-iii .sidebar-form .btn {
+    background-color: transparent;
+    border: 1px solid transparent;
+    color: var(--fk-text);
+    height: 34px;
+    box-shadow: none;
+}
+.skin-firefly-iii .sidebar-form input[type="text"]:focus,
+.skin-firefly-iii .sidebar-form input[type="text"]:focus + .input-group-btn .btn {
+    background-color: var(--fk-surface);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .sidebar-form .btn {
+    color: var(--fk-muted);
+}
+
+/* page header + breadcrumb: a flex row instead of AdminLTE's absolutely positioned breadcrumb,
+   so a long subtitle and a long breadcrumb wrap instead of overlapping */
+.skin-firefly-iii .content-header {
+    padding: 20px 20px 6px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 20px;
+}
+.skin-firefly-iii .content-header > h1 {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.skin-firefly-iii .content-header > h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.skin-firefly-iii .content-header > h1 > .fa {
+    color: var(--fk-muted);
+    font-size: 18px;
+    margin-right: 2px;
+}
+.skin-firefly-iii .content-header > h1 > small {
+    color: var(--fk-muted);
+    font-size: 14px;
+    font-weight: 400;
+    padding-left: 8px;
+}
+.skin-firefly-iii .content-header > .breadcrumb {
+    position: static;
+    float: none;
+    flex: 0 1 auto;
+    margin-left: auto;
+    padding: 0;
+    background: transparent;
+    white-space: nowrap;
+}
+.skin-firefly-iii .content-header > .breadcrumb > li > a {
+    color: var(--fk-muted);
+}
+.skin-firefly-iii .content-header > .breadcrumb > li > a:hover {
+    color: var(--fk-text);
+}
+.skin-firefly-iii .breadcrumb .active,
+.skin-firefly-iii .content-header > .breadcrumb li:before {
+    color: var(--fk-muted);
+}
+.skin-firefly-iii .content {
+    padding: 12px 20px 20px;
+}
+
+/* footer */
+.skin-firefly-iii .main-footer {
+    background: transparent;
+    border-top: 1px solid var(--fk-border);
+    color: var(--fk-muted);
+    font-size: 12px;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Cards (AdminLTE "box"), info boxes, small boxes, callouts
+ * ------------------------------------------------------------------------------------------- */
+.skin-firefly-iii .box {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-top-width: 1px;
+    border-radius: var(--fk-radius);
+    box-shadow: var(--fk-shadow);
+    margin-bottom: 20px;
+}
+.skin-firefly-iii .box.box-primary,
+.skin-firefly-iii .box.box-info,
+.skin-firefly-iii .box.box-success,
+.skin-firefly-iii .box.box-warning,
+.skin-firefly-iii .box.box-danger,
+.skin-firefly-iii .box.box-default {
+    border-top-color: var(--fk-border);
+}
+.skin-firefly-iii .box.box-solid {
+    border-top-color: var(--fk-border);
+}
+.skin-firefly-iii .box > .box-header {
+    background: transparent;
+    color: var(--fk-text);
+    padding: 12px 16px;
+    border-radius: var(--fk-radius) var(--fk-radius) 0 0;
+}
+.skin-firefly-iii .box-header.with-border {
+    border-bottom: 1px solid var(--fk-border);
+}
+.skin-firefly-iii .box-header .box-title,
+.skin-firefly-iii .box-header > .fa {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--fk-text);
+}
+.skin-firefly-iii .box-header .box-title a {
+    color: var(--fk-text);
+}
+.skin-firefly-iii .box-header .box-title a:hover {
+    color: var(--fk-accent);
+}
+.skin-firefly-iii .box-header > .box-tools {
+    top: 8px;
+    right: 12px;
+}
+.skin-firefly-iii .box > .box-header .btn.btn-box-tool,
+.skin-firefly-iii .btn-box-tool {
+    color: var(--fk-muted);
+}
+.skin-firefly-iii .box-body {
+    padding: 14px 16px;
+    border-radius: 0 0 var(--fk-radius) var(--fk-radius);
+}
+.skin-firefly-iii .box-footer {
+    background: var(--fk-surface-2);
+    border-top: 1px solid var(--fk-border);
+    border-radius: 0 0 var(--fk-radius) var(--fk-radius);
+    padding: 10px 16px;
+}
+.skin-firefly-iii .box.box-solid > .box-header {
+    background: var(--fk-surface-2);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .box.box-solid > .box-header .btn,
+.skin-firefly-iii .box.box-solid > .box-header a {
+    color: var(--fk-text);
+}
+.skin-firefly-iii .box-comments,
+.skin-firefly-iii .box-comments .box-comment {
+    background: var(--fk-surface-2);
+    border-color: var(--fk-border);
+}
+
+/* dashboard summary boxes: flat cards with a tinted icon instead of the gradient blocks */
+.skin-firefly-iii .info-box {
+    background: var(--fk-surface) !important;
+    color: var(--fk-text);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius);
+    box-shadow: var(--fk-shadow);
+    min-height: 92px;
+}
+.skin-firefly-iii .info-box.bg-aqua-gradient,
+.skin-firefly-iii .info-box.bg-teal-gradient,
+.skin-firefly-iii .info-box.bg-green-gradient,
+.skin-firefly-iii .info-box.bg-blue-gradient,
+.skin-firefly-iii .info-box.bg-aqua,
+.skin-firefly-iii .info-box.bg-teal,
+.skin-firefly-iii .info-box.bg-green,
+.skin-firefly-iii .info-box.bg-blue,
+.skin-firefly-iii .info-box.bg-red,
+.skin-firefly-iii .info-box.bg-yellow {
+    background: var(--fk-surface) !important;
+    color: var(--fk-text) !important;
+}
+.skin-firefly-iii .info-box .info-box-icon {
+    width: 56px;
+    height: 56px;
+    line-height: 56px;
+    margin: 17px 0 0 16px;
+    font-size: 24px;
+    border-radius: 12px;
+    background: var(--fk-accent-soft);
+    color: var(--fk-accent);
+}
+.skin-firefly-iii .info-box.bg-aqua-gradient .info-box-icon,
+.skin-firefly-iii .info-box.bg-aqua .info-box-icon { color: var(--fk-icon-aqua);  background: color-mix(in srgb, var(--fk-icon-aqua) 14%, transparent); }
+.skin-firefly-iii .info-box.bg-teal-gradient .info-box-icon,
+.skin-firefly-iii .info-box.bg-teal .info-box-icon { color: var(--fk-icon-teal);  background: color-mix(in srgb, var(--fk-icon-teal) 14%, transparent); }
+.skin-firefly-iii .info-box.bg-green-gradient .info-box-icon,
+.skin-firefly-iii .info-box.bg-green .info-box-icon { color: var(--fk-icon-green); background: color-mix(in srgb, var(--fk-icon-green) 14%, transparent); }
+.skin-firefly-iii .info-box.bg-blue-gradient .info-box-icon,
+.skin-firefly-iii .info-box.bg-blue .info-box-icon { color: var(--fk-icon-blue);  background: color-mix(in srgb, var(--fk-icon-blue) 14%, transparent); }
+.skin-firefly-iii .info-box .info-box-content {
+    margin-left: 88px;
+    padding: 14px 14px 12px 0;
+}
+.skin-firefly-iii .info-box .info-box-text {
+    color: var(--fk-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.skin-firefly-iii .info-box .info-box-number {
+    color: var(--fk-text);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+.skin-firefly-iii .info-box .progress {
+    background: var(--fk-border);
+    margin: 6px 0 4px;
+    height: 4px;
+}
+.skin-firefly-iii .info-box .progress .progress-bar {
+    background: var(--fk-accent);
+}
+.skin-firefly-iii .info-box .progress-description {
+    color: var(--fk-muted);
+    font-size: 12px;
+}
+.skin-firefly-iii span.info-box-text a,
+.skin-firefly-iii span.info-box-number a,
+.skin-firefly-iii span.info-box-icon a {
+    color: inherit;
+}
+.skin-firefly-iii span.info-box-text a:hover,
+.skin-firefly-iii span.info-box-number a:hover {
+    color: var(--fk-accent);
+}
+.skin-firefly-iii .small-box {
+    border-radius: var(--fk-radius);
+    box-shadow: var(--fk-shadow);
+}
+.skin-firefly-iii .callout {
+    border-radius: var(--fk-radius-sm);
+    border-left-width: 4px;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Tables
+ * ------------------------------------------------------------------------------------------- */
+.skin-firefly-iii .table > thead > tr > th {
+    border-bottom: 1px solid var(--fk-border);
+    color: var(--fk-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 10px 8px;
+    vertical-align: bottom;
+}
+.skin-firefly-iii .table > tbody > tr > td,
+.skin-firefly-iii .table > tbody > tr > th,
+.skin-firefly-iii .table > tfoot > tr > td,
+.skin-firefly-iii .table > tfoot > tr > th {
+    border-top: 1px solid var(--fk-border);
+    padding: 9px 8px;
+    vertical-align: middle;
+    color: var(--fk-text);
+}
+.skin-firefly-iii .table > tfoot > tr > td,
+.skin-firefly-iii .table > tfoot > tr > th {
+    font-weight: 600;
+    background: var(--fk-surface-2);
+}
+.skin-firefly-iii .table-bordered,
+.skin-firefly-iii .table-bordered > thead > tr > th,
+.skin-firefly-iii .table-bordered > tbody > tr > td,
+.skin-firefly-iii .table-bordered > tbody > tr > th,
+.skin-firefly-iii .table-bordered > tfoot > tr > td {
+    border-color: var(--fk-border);
+}
+.skin-firefly-iii .table-striped > tbody > tr:nth-of-type(odd),
+.skin-firefly-iii .table > tbody > tr.odd,
+.skin-firefly-iii .table > tfoot > tr.odd {
+    background-color: var(--fk-surface-2);
+}
+.skin-firefly-iii .table-hover > tbody > tr:hover,
+.skin-firefly-iii .table > tbody > tr.odd:hover,
+.skin-firefly-iii .table > tbody > tr.even:hover,
+.skin-firefly-iii .table > tfoot > tr.even:hover {
+    background-color: var(--fk-accent-soft);
+}
+.skin-firefly-iii .table > tbody > tr.active > td {
+    background-color: var(--fk-surface-2);
+}
+.skin-firefly-iii .box-body > .table > thead > tr > th:first-of-type,
+.skin-firefly-iii .box-body > .table > tbody > tr > td:first-of-type {
+    padding-left: 12px;
+}
+.skin-firefly-iii .dataTables_wrapper input[type='search'] {
+    background: var(--fk-surface);
+    color: var(--fk-text);
+    border-color: var(--fk-border);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Buttons
+ * ------------------------------------------------------------------------------------------- */
+.skin-firefly-iii .btn {
+    border-radius: var(--fk-radius-sm);
+    font-weight: 500;
+    box-shadow: none;
+    border-width: 1px;
+    transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.skin-firefly-iii .btn:focus,
+.skin-firefly-iii .btn:active:focus,
+.skin-firefly-iii .btn.active:focus {
+    outline: none;
+    box-shadow: var(--fk-focus);
+}
+.skin-firefly-iii .btn.active,
+.skin-firefly-iii .btn:active {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.skin-firefly-iii .btn-default {
+    background-color: var(--fk-surface);
+    color: var(--fk-text);
+    border-color: var(--fk-border-strong);
+}
+.skin-firefly-iii .btn-default:hover,
+.skin-firefly-iii .btn-default:active,
+.skin-firefly-iii .btn-default.hover,
+.skin-firefly-iii .btn-default:focus,
+.skin-firefly-iii .btn-default.active,
+.skin-firefly-iii .open > .dropdown-toggle.btn-default {
+    background-color: var(--fk-surface-2);
+    color: var(--fk-text);
+    border-color: var(--fk-border-strong);
+}
+.skin-firefly-iii .btn-primary {
+    background-color: var(--fk-accent);
+    border-color: var(--fk-accent);
+    color: #fff;
+}
+.skin-firefly-iii .btn-primary:hover,
+.skin-firefly-iii .btn-primary:focus,
+.skin-firefly-iii .btn-primary:active,
+.skin-firefly-iii .btn-primary.active,
+.skin-firefly-iii .open > .dropdown-toggle.btn-primary {
+    background-color: var(--fk-accent-hover);
+    border-color: var(--fk-accent-hover);
+    color: #fff;
+}
+.skin-firefly-iii .btn-success {
+    background-color: var(--fk-success);
+    border-color: var(--fk-success);
+    color: #fff;
+}
+.skin-firefly-iii .btn-success:hover,
+.skin-firefly-iii .btn-success:focus,
+.skin-firefly-iii .btn-success:active,
+.skin-firefly-iii .btn-success.hover,
+.skin-firefly-iii .btn-success.active,
+.skin-firefly-iii .open > .dropdown-toggle.btn-success {
+    background-color: var(--fk-success-hover);
+    border-color: var(--fk-success-hover);
+    color: #fff;
+}
+.skin-firefly-iii .btn-danger {
+    background-color: var(--fk-danger);
+    border-color: var(--fk-danger);
+    color: #fff;
+}
+.skin-firefly-iii .btn-danger:hover,
+.skin-firefly-iii .btn-danger:focus,
+.skin-firefly-iii .btn-danger:active,
+.skin-firefly-iii .btn-danger.active,
+.skin-firefly-iii .open > .dropdown-toggle.btn-danger {
+    background-color: var(--fk-danger-hover);
+    border-color: var(--fk-danger-hover);
+    color: #fff;
+}
+.skin-firefly-iii .btn-info {
+    background-color: var(--fk-info);
+    border-color: var(--fk-info);
+    color: #fff;
+}
+.skin-firefly-iii .btn-info:hover,
+.skin-firefly-iii .btn-info:focus,
+.skin-firefly-iii .btn-info:active,
+.skin-firefly-iii .btn-info.active,
+.skin-firefly-iii .open > .dropdown-toggle.btn-info {
+    background-color: var(--fk-info-hover);
+    border-color: var(--fk-info-hover);
+    color: #fff;
+}
+.skin-firefly-iii .btn-warning {
+    background-color: var(--fk-warning);
+    border-color: var(--fk-warning);
+    color: #fff;
+}
+.skin-firefly-iii .btn-warning:hover,
+.skin-firefly-iii .btn-warning:focus,
+.skin-firefly-iii .btn-warning:active,
+.skin-firefly-iii .btn-warning.active,
+.skin-firefly-iii .open > .dropdown-toggle.btn-warning {
+    background-color: var(--fk-warning-hover);
+    border-color: var(--fk-warning-hover);
+    color: #fff;
+}
+.skin-firefly-iii .btn-xs {
+    border-radius: 4px;
+}
+.skin-firefly-iii .btn-group > .btn:not(:first-child):not(:last-child):not(.dropdown-toggle) {
+    border-radius: 0;
+}
+.skin-firefly-iii .btn-group > .btn:first-child:not(:last-child):not(.dropdown-toggle) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.skin-firefly-iii .btn-group > .btn:last-child:not(:first-child),
+.skin-firefly-iii .btn-group > .dropdown-toggle:not(:first-child) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Forms
+ * ------------------------------------------------------------------------------------------- */
+.skin-firefly-iii .form-control {
+    background-color: var(--fk-surface);
+    color: var(--fk-text);
+    border: 1px solid var(--fk-border-strong);
+    border-radius: var(--fk-radius-sm);
+    box-shadow: none;
+    height: 36px;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.skin-firefly-iii textarea.form-control,
+.skin-firefly-iii select[multiple].form-control,
+.skin-firefly-iii select[size].form-control {
+    height: auto;
+}
+.skin-firefly-iii .form-control:focus {
+    border-color: var(--fk-accent);
+    box-shadow: var(--fk-focus);
+    background-color: var(--fk-surface);
+}
+.skin-firefly-iii .form-control::placeholder {
+    color: var(--fk-muted);
+    opacity: 0.8;
+}
+.skin-firefly-iii .form-control[disabled],
+.skin-firefly-iii .form-control[readonly],
+.skin-firefly-iii fieldset[disabled] .form-control {
+    background-color: var(--fk-surface-2);
+    color: var(--fk-muted);
+}
+.skin-firefly-iii .input-group .input-group-addon {
+    background-color: var(--fk-surface-2);
+    border-color: var(--fk-border-strong);
+    color: var(--fk-muted);
+    border-radius: var(--fk-radius-sm);
+}
+.skin-firefly-iii .input-group .form-control:first-child,
+.skin-firefly-iii .input-group-addon:first-child,
+.skin-firefly-iii .input-group-btn:first-child > .btn {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.skin-firefly-iii .input-group .form-control:last-child,
+.skin-firefly-iii .input-group-addon:last-child,
+.skin-firefly-iii .input-group-btn:last-child > .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.skin-firefly-iii .input-group-btn > .btn {
+    height: 36px;
+}
+.skin-firefly-iii .input-group textarea {
+    background: var(--fk-surface);
+    color: var(--fk-text);
+}
+.skin-firefly-iii label {
+    font-weight: 500;
+    color: var(--fk-text);
+    font-size: 13px;
+}
+.skin-firefly-iii .help-block {
+    color: var(--fk-muted);
+}
+.skin-firefly-iii .has-error .form-control {
+    border-color: var(--fk-danger);
+    box-shadow: none;
+}
+.skin-firefly-iii .has-error .help-block,
+.skin-firefly-iii .has-error .control-label {
+    color: var(--fk-danger);
+}
+/* vue-tags-input (transaction form) */
+.skin-firefly-iii .ti-input {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border-strong);
+    border-radius: var(--fk-radius-sm);
+    color: var(--fk-text);
+}
+.skin-firefly-iii input.ti-new-tag-input {
+    background: var(--fk-surface);
+    color: var(--fk-text);
+    font-family: var(--fk-font) !important;
+}
+.skin-firefly-iii .ti-tag {
+    background: var(--fk-accent);
+    border-radius: 4px;
+}
+.skin-firefly-iii .ti-autocomplete {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius-sm);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .bootstrap-tagsinput {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border-strong);
+    border-radius: var(--fk-radius-sm);
+    box-shadow: none;
+    color: var(--fk-text);
+}
+/* typeahead + autocomplete menus (hard-coded white in firefly.css) */
+.skin-firefly-iii span.twitter-typeahead .tt-menu,
+.skin-firefly-iii span.twitter-typeahead .tt-dropdown-menu,
+.skin-firefly-iii .autocomplete-suggestions {
+    background-color: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius-sm);
+    box-shadow: var(--fk-shadow-lg);
+}
+.skin-firefly-iii span.twitter-typeahead .tt-suggestion,
+.skin-firefly-iii .autocomplete-suggestion {
+    color: var(--fk-text);
+}
+.skin-firefly-iii span.twitter-typeahead .tt-suggestion.tt-cursor,
+.skin-firefly-iii span.twitter-typeahead .tt-suggestion:hover,
+.skin-firefly-iii span.twitter-typeahead .tt-suggestion:focus,
+.skin-firefly-iii .autocomplete-selected {
+    background-color: var(--fk-accent);
+    color: #fff;
+}
+/* select2 (used on some forms) */
+.skin-firefly-iii .select2 .select2-selection {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border-strong);
+    border-radius: var(--fk-radius-sm);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .select2-dropdown {
+    background: var(--fk-surface);
+    border-color: var(--fk-border);
+    color: var(--fk-text);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Dropdowns, pagination, labels, progress, alerts, modals, tabs, lists, wells
+ * ------------------------------------------------------------------------------------------- */
+.skin-firefly-iii .dropdown-menu {
+    background-color: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-radius: 8px;
+    box-shadow: var(--fk-shadow-lg);
+    padding: 6px;
+}
+.skin-firefly-iii .dropdown-menu > li > a {
+    color: var(--fk-text);
+    border-radius: 5px;
+    padding: 6px 10px;
+}
+.skin-firefly-iii .dropdown-menu > li > a:hover,
+.skin-firefly-iii .dropdown-menu > li > a:focus {
+    background-color: var(--fk-surface-2);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .dropdown-menu > .divider {
+    background-color: var(--fk-border);
+}
+.skin-firefly-iii .dropdown-header {
+    color: var(--fk-muted);
+}
+
+.skin-firefly-iii .pagination > li > a,
+.skin-firefly-iii .pagination > li > span,
+.skin-firefly-iii .dataTables_paginate .pagination li > a {
+    background-color: var(--fk-surface);
+    border-color: var(--fk-border-strong);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .pagination > li > a:hover,
+.skin-firefly-iii .pagination > li > span:hover,
+.skin-firefly-iii .pagination > li > a:focus,
+.skin-firefly-iii .pagination > li > span:focus {
+    background-color: var(--fk-surface-2);
+    border-color: var(--fk-border-strong);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .pagination > .active > a,
+.skin-firefly-iii .pagination > .active > span,
+.skin-firefly-iii .pagination > .active > a:hover,
+.skin-firefly-iii .pagination > .active > span:hover,
+.skin-firefly-iii .pagination > .active > a:focus,
+.skin-firefly-iii .pagination > .active > span:focus {
+    background-color: var(--fk-accent);
+    border-color: var(--fk-accent);
+    color: #fff;
+}
+.skin-firefly-iii .pagination > .disabled > span,
+.skin-firefly-iii .pagination > .disabled > a,
+.skin-firefly-iii .pagination > .disabled > a:hover,
+.skin-firefly-iii .pagination > .disabled > a:focus {
+    background-color: var(--fk-surface-2);
+    border-color: var(--fk-border);
+    color: var(--fk-muted);
+}
+.skin-firefly-iii .pagination > li:first-child > a,
+.skin-firefly-iii .pagination > li:first-child > span {
+    border-top-left-radius: var(--fk-radius-sm);
+    border-bottom-left-radius: var(--fk-radius-sm);
+}
+.skin-firefly-iii .pagination > li:last-child > a,
+.skin-firefly-iii .pagination > li:last-child > span {
+    border-top-right-radius: var(--fk-radius-sm);
+    border-bottom-right-radius: var(--fk-radius-sm);
+}
+
+.skin-firefly-iii .label {
+    border-radius: 999px;
+    font-weight: 500;
+    padding: 0.25em 0.7em 0.3em;
+}
+.skin-firefly-iii .badge {
+    border-radius: 999px;
+    background: var(--fk-muted);
+}
+
+.skin-firefly-iii .progress {
+    background: var(--fk-border);
+    border-radius: 999px;
+    box-shadow: none;
+}
+.skin-firefly-iii .progress-bar {
+    box-shadow: none;
+}
+.skin-firefly-iii .progress-bar-primary,
+.skin-firefly-iii .progress-bar-info { background-color: var(--fk-accent); }
+.skin-firefly-iii .progress-bar-success { background-color: var(--fk-success); }
+.skin-firefly-iii .progress-bar-warning { background-color: var(--fk-warning); }
+.skin-firefly-iii .progress-bar-danger { background-color: var(--fk-danger); }
+
+.skin-firefly-iii .alert {
+    border-radius: var(--fk-radius-sm);
+    border-width: 1px;
+}
+.skin-firefly-iii .well {
+    background-color: var(--fk-surface-2);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius-sm);
+    box-shadow: none;
+}
+
+.skin-firefly-iii .modal-content {
+    background-color: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-radius: 12px;
+    box-shadow: var(--fk-shadow-lg);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .modal-header {
+    border-bottom: 1px solid var(--fk-border);
+    padding: 14px 18px;
+}
+.skin-firefly-iii .modal-title {
+    font-weight: 600;
+}
+.skin-firefly-iii .modal-footer {
+    border-top: 1px solid var(--fk-border);
+    background: var(--fk-surface-2);
+    border-radius: 0 0 12px 12px;
+}
+.skin-firefly-iii .modal-header .close {
+    color: var(--fk-text);
+    text-shadow: none;
+}
+
+.skin-firefly-iii .nav-tabs-custom {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius);
+    box-shadow: var(--fk-shadow);
+}
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs {
+    border-bottom: 1px solid var(--fk-border);
+    background: transparent;
+}
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs > li {
+    border-top: 2px solid transparent;
+    margin-right: 0;
+}
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs > li > a {
+    color: var(--fk-muted);
+    font-weight: 500;
+    border-radius: 0;
+}
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs > li > a:hover {
+    color: var(--fk-text);
+    background: transparent;
+}
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs > li.active {
+    border-top-color: var(--fk-accent);
+}
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs > li.active > a,
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs > li.active:hover > a {
+    color: var(--fk-text);
+    background: var(--fk-surface);
+    border-left-color: var(--fk-border);
+    border-right-color: var(--fk-border);
+}
+.skin-firefly-iii .nav-tabs-custom > .nav-tabs > li:first-of-type.active > a {
+    border-left-color: transparent;
+}
+.skin-firefly-iii .nav-tabs-custom > .tab-content {
+    background: var(--fk-surface);
+    color: var(--fk-text);
+    border-radius: 0 0 var(--fk-radius) var(--fk-radius);
+}
+.skin-firefly-iii .nav-tabs {
+    border-bottom-color: var(--fk-border);
+}
+.skin-firefly-iii .nav-tabs > li > a {
+    color: var(--fk-muted);
+    border-radius: var(--fk-radius-sm) var(--fk-radius-sm) 0 0;
+}
+.skin-firefly-iii .nav-tabs > li.active > a,
+.skin-firefly-iii .nav-tabs > li.active > a:hover,
+.skin-firefly-iii .nav-tabs > li.active > a:focus {
+    color: var(--fk-text);
+    background: var(--fk-surface);
+    border-color: var(--fk-border) var(--fk-border) transparent;
+}
+.skin-firefly-iii .nav-stacked > li > a {
+    color: var(--fk-text);
+    border-radius: var(--fk-radius-sm);
+}
+.skin-firefly-iii .nav-stacked > li > a:hover,
+.skin-firefly-iii .nav-pills > li > a:hover {
+    background: var(--fk-surface-2);
+}
+.skin-firefly-iii .nav-pills > li.active > a,
+.skin-firefly-iii .nav-pills > li.active > a:hover {
+    background: var(--fk-accent);
+}
+
+.skin-firefly-iii .list-group,
+.skin-firefly-iii .list-group .list-group-item,
+.skin-firefly-iii button.list-group-item {
+    background: var(--fk-surface);
+    border-color: var(--fk-border);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .list-group-item:first-child {
+    border-top-left-radius: var(--fk-radius-sm);
+    border-top-right-radius: var(--fk-radius-sm);
+}
+.skin-firefly-iii .list-group-item:last-child {
+    border-bottom-left-radius: var(--fk-radius-sm);
+    border-bottom-right-radius: var(--fk-radius-sm);
+}
+.skin-firefly-iii .panel {
+    background: var(--fk-surface);
+    border-color: var(--fk-border);
+    border-radius: var(--fk-radius-sm);
+    box-shadow: none;
+}
+.skin-firefly-iii .panel-default > .panel-heading {
+    background: var(--fk-surface-2);
+    border-color: var(--fk-border);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .preferences-box,
+.skin-firefly-iii .install-box-border {
+    border-color: var(--fk-border);
+    border-radius: var(--fk-radius-sm);
+}
+.skin-firefly-iii .search-word {
+    background-color: var(--fk-surface-2);
+    border-radius: 4px;
+    padding: 0 4px;
+}
+.skin-firefly-iii .timeline li .timeline-item,
+.skin-firefly-iii .timeline li .timeline-header {
+    background: var(--fk-surface);
+    border-color: var(--fk-border);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .popover {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius-sm);
+    box-shadow: var(--fk-shadow-lg);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .popover-title {
+    background: var(--fk-surface-2);
+    border-bottom-color: var(--fk-border);
+}
+.skin-firefly-iii .tooltip-inner {
+    border-radius: 6px;
+}
+/* intro.js tour */
+.skin-firefly-iii .introjs-tooltip {
+    border-radius: 12px;
+    box-shadow: var(--fk-shadow-lg);
+    font-family: var(--fk-font);
+}
+.skin-firefly-iii .introjs-button {
+    border-radius: var(--fk-radius-sm);
+    text-shadow: none;
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border-strong);
+    color: var(--fk-text);
+}
+.skin-firefly-iii .introjs-button:hover,
+.skin-firefly-iii .introjs-button:focus {
+    background: var(--fk-surface-2);
+    color: var(--fk-text);
+}
+/* date range picker (top bar) */
+.skin-firefly-iii .daterangepicker {
+    background: var(--fk-surface);
+    border: 1px solid var(--fk-border);
+    border-radius: var(--fk-radius);
+    box-shadow: var(--fk-shadow-lg);
+    color: var(--fk-text);
+    font-family: var(--fk-font);
+}
+.skin-firefly-iii .daterangepicker .ranges li {
+    border-radius: var(--fk-radius-sm);
+}
+.skin-firefly-iii .daterangepicker .ranges li:hover,
+.skin-firefly-iii .daterangepicker .ranges li.active {
+    background: var(--fk-accent);
+    border-color: var(--fk-accent);
+    color: #fff;
+}

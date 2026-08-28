@@ -1,0 +1,11 @@
+{# FORK: optional modern-look overlay for the v1 (Twig/AdminLTE 2) layout. Purely CSS, loaded after
+   firefly.css from layout/default.twig through a one-line hook. Switched by FORK_UI_OVERLAY
+   (config fork.ui_overlay); the dark file follows the same darkMode logic upstream uses for its skins. #}
+{% if Config.get('fork.ui_overlay') %}
+    <link href="fork/css/overlay.css?v={{ FF_BUILD_TIME }}" rel="stylesheet" type="text/css" nonce="{{ JS_NONCE }}">
+    {% if 'browser' == darkMode %}
+        <link href="fork/css/overlay-dark.css?v={{ FF_BUILD_TIME }}" rel="stylesheet" type="text/css" nonce="{{ JS_NONCE }}" media="(prefers-color-scheme: dark)">
+    {% elseif 'dark' == darkMode %}
+        <link href="fork/css/overlay-dark.css?v={{ FF_BUILD_TIME }}" rel="stylesheet" type="text/css" nonce="{{ JS_NONCE }}">
+    {% endif %}
+{% endif %}

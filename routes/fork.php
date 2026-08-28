@@ -34,3 +34,13 @@ Route::get('transfer-pairs', [TransferPairController::class, 'index'])->name('ap
 Route::post('transfer-pairs/run', [TransferPairController::class, 'run'])->name('api.v1.fork.transfer-pairs.run');
 Route::get('transfer-pairs/settings', [TransferPairController::class, 'settings'])->name('api.v1.fork.transfer-pairs.settings');
 Route::put('transfer-pairs/settings', [TransferPairController::class, 'updateSettings'])->name('api.v1.fork.transfer-pairs.settings.update');
+
+Route::get('payee-aliases', [FireflyIII\Fork\Http\Controllers\PayeeAliasController::class, 'index'])->name('api.v1.fork.payee-aliases.index');
+Route::post('payee-aliases', [FireflyIII\Fork\Http\Controllers\PayeeAliasController::class, 'store'])->name('api.v1.fork.payee-aliases.store');
+Route::post('payee-aliases/merge', [FireflyIII\Fork\Http\Controllers\PayeeAliasController::class, 'merge'])->name('api.v1.fork.payee-aliases.merge');
+Route::put('payee-aliases/{id}', [FireflyIII\Fork\Http\Controllers\PayeeAliasController::class, 'update'])->whereNumber('id')->name(
+    'api.v1.fork.payee-aliases.update'
+);
+Route::delete('payee-aliases/{id}', [FireflyIII\Fork\Http\Controllers\PayeeAliasController::class, 'destroy'])
+    ->whereNumber('id')
+    ->name('api.v1.fork.payee-aliases.destroy');

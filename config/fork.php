@@ -44,5 +44,10 @@ return [
     // (withdrawal from checking + deposit into the card) is merged into one transfer by amount and
     // date. Per-user behaviour (patterns, window, target accounts, dry run) is a preference managed
     // through GET/PUT /api/v1/fork/transfer-pairs/settings; the daily cron runs the sweep.
-    'transfer_pairing' => (bool) env('FORK_TRANSFER_PAIRING', false)
+    'transfer_pairing' => (bool) env('FORK_TRANSFER_PAIRING', false),
+
+    // Payee aliases: map raw payee strings ("AMAZON MKTPL*AB12CD34") to one canonical expense or
+    // revenue account ("Amazon") BEFORE the account is created, so fragments never exist. Managed
+    // through /api/v1/fork/payee-aliases; `firefly-iii:fork:payees:merge` folds existing fragments.
+    'payee_aliases' => (bool) env('FORK_PAYEE_ALIASES', false)
 ];

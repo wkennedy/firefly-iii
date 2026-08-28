@@ -24,13 +24,17 @@ declare(strict_types=1);
 
 namespace FireflyIII\Providers;
 
+use FireflyIII\Factory\AccountFactory as UpstreamAccountFactory;
 use FireflyIII\Factory\TransactionJournalFactory as UpstreamTransactionJournalFactory;
 use FireflyIII\Fork\Config\LiabilityTransfers;
 use FireflyIII\Fork\Console\Commands\AutoBudgetCatchUp;
 use FireflyIII\Fork\Console\Commands\ExternalIdsBackfill;
 use FireflyIII\Fork\Console\Commands\PairTransfers;
+use FireflyIII\Fork\Console\Commands\PayeesMerge;
+use FireflyIII\Fork\Console\Commands\PayeesPruneEmpty;
 use FireflyIII\Fork\Console\Commands\PurgeDeletedTransactions;
 use FireflyIII\Fork\Dedup\ExternalIdObserver;
+use FireflyIII\Fork\Factory\AccountFactory;
 use FireflyIII\Fork\Factory\TransactionJournalFactory;
 use FireflyIII\Fork\Support\Steam;
 use FireflyIII\Fork\TransactionRules\Actions\ConvertToLiabilityTransfer;
@@ -57,7 +61,14 @@ final class ForkServiceProvider extends ServiceProvider
         TransactionJournalMeta::observe(ExternalIdObserver::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([AutoBudgetCatchUp::class, ExternalIdsBackfill::class, PairTransfers::class, PurgeDeletedTransactions::class]);
+            $this->commands([
+                AutoBudgetCatchUp::class,
+                ExternalIdsBackfill::class,
+                PairTransfers::class,
+                PayeesMerge::class,
+                PayeesPruneEmpty::class,
+                PurgeDeletedTransactions::class
+            ]);
         }
     }
 
@@ -69,6 +80,8 @@ final class ForkServiceProvider extends ServiceProvider
         // Journal creation wrapped in a DB transaction so external_id reservations are atomic
         // (config fork.external_id_dedup; see FireflyIII\Fork\Dedup\ExternalIdRegistry).
         $this->app->bind(UpstreamTransactionJournalFactory::class, TransactionJournalFactory::class);
+        // Payee aliases applied before an expense/revenue account is created (config fork.payee_aliases).
+        $this->app->bind(UpstreamAccountFactory::class, AccountFactory::class);
 
         // Rule action `convert_liability_transfer` is always registered (so existing rules keep
         // validating); it refuses to act unless the flag below is on.

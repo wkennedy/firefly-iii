@@ -20,7 +20,7 @@ This is a **fork** of [firefly-iii/firefly-iii](https://github.com/firefly-iii/f
 
 Conflicts only happen where our edits overlap upstream's. So:
 
-1. **Add, don't edit.** New classes go in fork-owned paths: `app/Fork/…` (namespace `FireflyIII\Fork\…`, already covered by the `FireflyIII\` PSR-4 root), `app/Providers/Fork*ServiceProvider.php`, `resources/views/fork/…`, `database/migrations/<ts>_fork_*.php`. Build/deploy tooling lives in `.fork/` (+ root `.dockerignore`).
+1. **Add, don't edit.** New classes go in fork-owned paths: `app/Fork/…` (namespace `FireflyIII\Fork\…`, already covered by the `FireflyIII\` PSR-4 root), `app/Providers/Fork*ServiceProvider.php`, `resources/views/fork/…`, `database/migrations/<ts>_fork_*.php`. Build/deploy tooling lives in `.fork/` (+ root `.dockerignore`). **`app/Providers/ForkServiceProvider.php`** (registered last in `bootstrap/providers.php`) is where fork bindings and artisan commands are wired: today it rebinds `steam` to `FireflyIII\Fork\Support\Steam` (floatalize fix) and registers `firefly-iii:fork:auto-budget-catchup` (`app/Fork/Console/Commands/`). Add new overrides there, not in upstream providers.
 2. When an upstream file *must* be touched, keep it to a one-line hook that delegates to fork code, and mark it:
    `// FORK: <why>` in PHP, `{# FORK: <why> #}` in Twig, `{{-- FORK: <why> --}}` in Blade. The marker tells whoever resolves the next merge conflict which side is intentional.
 3. **Never edit an existing migration.** Add a new one with a later timestamp. Prefer new tables (`fork_*`) over new columns on upstream tables.
@@ -57,6 +57,7 @@ Registry address, deployment-repo path and any cluster-specific commands live **
 # tests (sqlite in-memory). Upstream's phpunit.xml has stopOnFailure=true and PHPUnit 13 can't negate it on the CLI —
 # use the fork config to see every failure: vendor/bin/phpunit -c .fork/phpunit.xml --testsuite unit|integration|fork
 # prerequisite once per checkout: APP_ENV=testing php artisan firefly-iii:laravel-passport-keys   (integration tests 500 with "Invalid key supplied" without storage/oauth-*.key)
+# fork suite: vendor/bin/phpunit -c .fork/phpunit.xml --testsuite fork   (own tests; excluded from unit/integration in that config so nothing runs twice)
 # fork test support (tests/integration/Traits/): ForkTestSupport is hooked into TestCase — actingAs() also authenticates the Passport `api` guard and oauth keys are generated on demand; CreatesTransactionGroups gives createUser/createAccount/createWithdrawal|Deposit|Transfer/createTransactionGroup/createRule/createWebhook. Fork tests live in tests/{unit,integration}/Fork/.
 # known-failing upstream tests (v6.6.6, not ours): Api/Chart/{Budget,Category}ControllerTest::testGetOverviewChartFails expect 422 on a missing range but DateRangeRequest no longer requires it → 200
 composer unit-test            # tests/unit

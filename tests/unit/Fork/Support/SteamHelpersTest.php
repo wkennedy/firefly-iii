@@ -24,14 +24,17 @@ declare(strict_types=1);
 
 namespace Tests\unit\Fork\Support;
 
+use FireflyIII\Fork\Support\Steam as ForkSteam;
 use FireflyIII\Support\Steam;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\integration\TestCase;
 
 /**
  * FORK: the bcmath string helpers every balance and amount goes through. Pure
- * functions, previously untested. Some expectations document quirks on purpose
- * (marked "quirk") — change them only together with the code.
+ * functions, previously untested. Tests run against the bound `steam` service, which
+ * ForkServiceProvider points at FireflyIII\Fork\Support\Steam (floatalize() fix).
+ * Some expectations document quirks on purpose (marked "quirk") — change them only
+ * together with the code.
  *
  * @internal
  *
@@ -66,7 +69,9 @@ final class SteamHelpersTest extends TestCase
         yield 'positive exponent with decimals' => ['1.5E3', '1500.0'];
         yield 'negative exponent with decimals' => ['1.5E-3', '0.0015'];
         yield 'lowercase e' => ['2.5e2', '250.0'];
-        yield 'quirk: no decimals + negative exponent collapses to 0' => ['2E-3', '0'];
+        yield 'no decimals + negative exponent (fixed in fork)' => ['2E-3', '0.002'];
+        yield 'no decimals + positive exponent' => ['2E3', '2000'];
+        yield 'negative number, negative exponent' => ['-1.25E-2', '-0.0125'];
         yield 'quirk: non-numeric text is upper-cased' => ['abc', 'ABC'];
     }
 
@@ -80,6 +85,7 @@ final class SteamHelpersTest extends TestCase
         yield 'zero' => ['0', '0'];
         yield 'empty' => ['', '0'];
         yield 'scientific notation' => ['1.5E3', '-1500.0'];
+        yield 'tiny amount in scientific notation (was lost upstream)' => ['2E-3', '-0.002'];
     }
 
     /**
@@ -111,19 +117,19 @@ final class SteamHelpersTest extends TestCase
     #[DataProvider('bcroundCases')]
     public function testBcround(null|string $number, int $precision, string $expected): void
     {
-        self::assertSame($expected, new Steam()->bcround($number, $precision));
+        self::assertSame($expected, $this->steam()->bcround($number, $precision));
     }
 
     #[DataProvider('floatalizeCases')]
     public function testFloatalize(string $value, string $expected): void
     {
-        self::assertSame($expected, new Steam()->floatalize($value));
+        self::assertSame($expected, $this->steam()->floatalize($value));
     }
 
     #[DataProvider('negativeCases')]
     public function testNegative(string $amount, string $expected): void
     {
-        self::assertSame(0, bccomp($expected, new Steam()->negative($amount), 12), sprintf('negative(%s)', $amount));
+        self::assertSame(0, bccomp($expected, $this->steam()->negative($amount), 12), sprintf('negative(%s)', $amount));
     }
 
     public function testOpposite(): void
@@ -138,19 +144,38 @@ final class SteamHelpersTest extends TestCase
     #[DataProvider('phpBytesCases')]
     public function testPhpBytes(string $value, int $expected): void
     {
-        self::assertSame($expected, new Steam()->phpBytes($value));
+        self::assertSame($expected, $this->steam()->phpBytes($value));
     }
 
     #[DataProvider('positiveCases')]
     public function testPositive(string $amount, string $expected): void
     {
         // bootstrap/app.php sets bcscale(12), so bcmul() pads to 12 decimals: compare numerically.
-        self::assertSame(0, bccomp($expected, new Steam()->positive($amount), 12), sprintf('positive(%s)', $amount));
+        self::assertSame(0, bccomp($expected, $this->steam()->positive($amount), 12), sprintf('positive(%s)', $amount));
     }
 
     public function testPositiveKeepsNegativeZeroSign(): void
     {
         // quirk: bccomp('-0.00', '0') is 0, so the sign is never flipped and "-0.00" survives.
-        self::assertSame('-0.00', new Steam()->positive('-0.00'));
+        self::assertSame('-0.00', $this->steam()->positive('-0.00'));
+    }
+
+    public function testSteamServiceIsTheForkOverride(): void
+    {
+        self::assertInstanceOf(ForkSteam::class, app('steam'));
+        self::assertInstanceOf(Steam::class, app('steam'));
+    }
+
+    public function testUpstreamFloatalizeStillNeedsTheOverride(): void
+    {
+        // When this fails, upstream fixed Steam::floatalize(): delete FireflyIII\Fork\Support\Steam,
+        // the `steam` rebinding in ForkServiceProvider, and this test.
+        self::assertSame('0', new Steam()->floatalize('2E-3'));
+        self::assertSame('0.002', new ForkSteam()->floatalize('2E-3'));
+    }
+
+    private function steam(): Steam
+    {
+        return app('steam');
     }
 }

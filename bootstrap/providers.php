@@ -70,4 +70,5 @@ return [
     TagServiceProvider::class,
     AdminServiceProvider::class,
     RecurringServiceProvider::class,
+    FireflyIII\Providers\ForkServiceProvider::class, // FORK: must stay last — overrides upstream bindings (steam) and registers fork commands
 ];

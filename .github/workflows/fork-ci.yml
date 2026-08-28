@@ -3,7 +3,8 @@
 #
 # Jobs:
 #   tests  — composer install, mago format/lint on fork-owned paths, unit + integration
-#            suites (all failures reported, two known-stale upstream tests excluded).
+#            suites (all failures reported, two known-stale upstream tests excluded), then
+#            the fork suite.
 #            .fork/build.sh --push looks for this job's check-run on the commit.
 #   image  — builds the runtime image from this checkout (no push) and smoke-tests it.
 name: 'Fork - CI'
@@ -100,6 +101,9 @@ jobs:
         # Excluded: two upstream tests stale since DateRangeRequest stopped requiring a range
         # (Api/Chart/{Budget,Category}ControllerTest::testGetOverviewChartFails → 200, expected 422).
         run: vendor/bin/phpunit -c .fork/phpunit.xml --testsuite integration --no-coverage --colors=never --exclude-filter 'Chart\\(Budget|Category)ControllerTest::testGetOverviewChartFails'
+
+      - name: Fork tests (contracts the importer/categorizer rely on)
+        run: vendor/bin/phpunit -c .fork/phpunit.xml --testsuite fork --no-coverage --colors=never
 
   image:
     name: image

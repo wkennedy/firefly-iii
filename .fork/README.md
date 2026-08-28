@@ -11,7 +11,7 @@ Deployment-specific values (registry address, manifests repo) live in the gitign
 | `build.sh`                         | `docker buildx build` wrapper. Tags `<registry>/firefly:<upstream-version>-fork.<n>`; `--push` sends it to the registry.                                                                                                      |
 | `build.env.example`                | Template for `build.env`: `FORK_REGISTRY`, `FORK_IMAGE_NAME`, `FORK_REGISTRY_HINT`, `FORK_DEPLOY_REPO`.                                                                                                                       |
 | `smoke-test.sh`                    | Boots an image with sqlite and checks `/healthcheck` and `/login` answer 200.                                                                                                                                                 |
-| `phpunit.xml`                      | Upstream's PHPUnit config with stop-on-failure **off** plus a `fork` suite (`tests/{unit,integration}/Fork`). `vendor/bin/phpunit -c .fork/phpunit.xml --testsuite fork`.                                                     |
+| `phpunit.xml`                      | Upstream's PHPUnit config with stop-on-failure **off** plus a `fork` suite (`tests/{unit,integration}/Fork`, excluded from unit/integration). `vendor/bin/phpunit -c .fork/phpunit.xml --testsuite fork`.                                                     |
 | `../.github/workflows/fork-ci.yml` | Fork CI (new file, never conflicts): format/lint of fork paths, isolation guard rails, unit + integration suites, image build + smoke test. `build.sh --push` requires its `tests` check to be green on HEAD.                 |
 
 Release flow:

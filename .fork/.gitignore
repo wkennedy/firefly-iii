@@ -1,0 +1,2 @@
+# Deployment-specific settings (registry address, deploy repo path). Never committed.
+build.env

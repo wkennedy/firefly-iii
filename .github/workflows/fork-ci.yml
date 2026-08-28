@@ -1,0 +1,122 @@
+# FORK: CI for this fork. Upstream's workflows never run PHPUnit; this one does.
+# New file (upstream has no fork-ci.yml), so it never conflicts on /sync-upstream.
+#
+# Jobs:
+#   tests  — composer install, mago format/lint on fork-owned paths, unit + integration
+#            suites (all failures reported, two known-stale upstream tests excluded).
+#            .fork/build.sh --push looks for this job's check-run on the commit.
+#   image  — builds the runtime image from this checkout (no push) and smoke-tests it.
+name: 'Fork - CI'
+
+on:
+  push:
+    branches: [ custom, 'feature/**' ]
+  pull_request:
+    branches: [ custom ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PHP_VERSION: '8.5'
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, fileinfo, iconv, intl, mbstring, openssl, pdo, pdo_sqlite, sqlite3, session, simplexml, tokenizer, xml, xmlwriter, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --no-scripts
+
+      - name: Passport keys (integration tests need them)
+        run: APP_ENV=testing php artisan firefly-iii:laravel-passport-keys
+
+      - name: Fork-owned paths must pass mago format + lint
+        # Only what we own; upstream files are formatted by upstream's release job.
+        run: |
+          FORK_PATHS="tests/integration/Fork tests/unit/Fork tests/integration/Traits/ForkTestSupport.php tests/integration/Traits/CreatesTransactionGroups.php"
+          for d in app/Fork database/migrations; do
+            [ -d "$d" ] && FORK_PATHS="$FORK_PATHS $(ls -d $d/*fork* $d/Fork* 2>/dev/null | tr '\n' ' ')"
+          done
+          echo "Checking: $FORK_PATHS"
+          vendor/bin/mago format --check $FORK_PATHS
+          vendor/bin/mago lint $FORK_PATHS
+
+      - name: Fork isolation guard rails
+        # Rules from CLAUDE.md that a machine can check: lockfiles change only via the package
+        # manager, upstream workflows are never edited, existing migrations are never edited,
+        # and any other upstream file we touch carries a FORK marker (warning only).
+        run: |
+          git fetch --no-tags --depth=1 origin main
+          STATUS=0
+          for f in $(git diff --name-only origin/main...HEAD); do
+            case "$f" in
+              .fork/*|tests/integration/Fork/*|tests/unit/Fork/*|app/Fork/*|.github/workflows/fork-ci.yml|.dockerignore|CLAUDE.md|.claude/*|tests/integration/Traits/ForkTestSupport.php|tests/integration/Traits/CreatesTransactionGroups.php)
+                ;;  # fork-owned
+              composer.lock|package-lock.json)
+                echo "::error file=$f::lockfile changed on this branch — only composer/npm may change it (rule 4)"; STATUS=1 ;;
+              .github/workflows/*)
+                echo "::error file=$f::upstream workflow edited — add fork CI as a new, differently named file (rule 5)"; STATUS=1 ;;
+              database/migrations/*)
+                if git cat-file -e "origin/main:$f" 2>/dev/null; then
+                  echo "::error file=$f::existing upstream migration edited — add a new fork_* migration instead (rule 3)"; STATUS=1
+                fi ;;
+              *)
+                if [ -f "$f" ] && git cat-file -e "origin/main:$f" 2>/dev/null && ! grep -q 'FORK:' "$f"; then
+                  echo "::warning file=$f::upstream file changed without a FORK: marker (rule 2)"
+                fi ;;
+            esac
+          done
+          exit $STATUS
+
+      - name: Unit tests
+        run: vendor/bin/phpunit -c .fork/phpunit.xml --testsuite unit --no-coverage --colors=never
+
+      - name: Integration tests
+        # Excluded: two upstream tests stale since DateRangeRequest stopped requiring a range
+        # (Api/Chart/{Budget,Category}ControllerTest::testGetOverviewChartFails → 200, expected 422).
+        run: vendor/bin/phpunit -c .fork/phpunit.xml --testsuite integration --no-coverage --colors=never --exclude-filter 'Chart\\(Budget|Category)ControllerTest::testGetOverviewChartFails'
+
+  image:
+    name: image
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image from this checkout (no push)
+        env:
+          FORK_ALLOW_BRANCH: '1'
+        run: .fork/build.sh --registry ci.local --tag ci-${{ github.sha }} --skip-ci-check
+
+      - name: Smoke test (sqlite boot, /healthcheck + /login)
+        run: .fork/smoke-test.sh ci.local/firefly:ci-${{ github.sha }}

@@ -38,6 +38,7 @@ abstract class TestCase extends BaseTestCase
 {
     use CollectsValues;
     use CreatesApplication;
+    use Traits\ForkTestSupport; // FORK: Passport guard for API tests + oauth key generation
     use RefreshDatabase;
 
     protected const MAX_ITERATIONS = 2;

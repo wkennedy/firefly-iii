@@ -1,0 +1,26 @@
+# FORK: build context for .fork/docker/Dockerfile. Mirrors what upstream's release
+# zip excludes (.git, .ci, .github, node_modules) plus things we rebuild in-image.
+.git
+.github
+.ci
+.claude
+CLAUDE.md
+.idea
+.dockerignore
+.env
+.env.*
+!.env.example
+node_modules
+resources/assets/*/node_modules
+vendor
+public/build
+public/hot
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/*.key
+phpstan-report.txt
+tests
+.fork/*
+!.fork/docker

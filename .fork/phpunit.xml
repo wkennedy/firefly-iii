@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FORK: same suites and env as ../phpunit.xml, but stopOnFailure/stopOnError are OFF so
+  a run reports every failure (PHPUnit 13 has no CLI flag to negate them). Used by
+  fork-ci.yml and for local runs:  vendor/bin/phpunit -c .fork/phpunit.xml -\-testsuite integration
+  Keep in sync with upstream's phpunit.xml after /sync-upstream (diff the <php> block).
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.2/phpunit.xsd"
+         backupGlobals="false"
+         backupStaticProperties="false"
+         beStrictAboutOutputDuringTests="true"
+         bootstrap="../vendor/autoload.php"
+         cacheDirectory="../.phpunit.cache"
+         colors="true"
+         executionOrder="default"
+         failOnRisky="true"
+         failOnWarning="true"
+         processIsolation="false"
+         stopOnError="false"
+         stopOnFailure="false">
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="APP_LOG_ENV" value="notice"/>
+        <env name="DB_DATABASE" value=""/>
+        <env name="APP_LOG_LEVEL" value="notice"/>
+        <env name="AUDIT_LOG_LEVEL" value="emergency" />
+        <env name="QUERY_PARSER_IMPLEMENTATION" value="new"/>
+    </php>
+    <testsuites>
+        <testsuite name="unit">
+            <directory suffix="Test.php">../tests/unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory suffix="Test.php">../tests/integration</directory>
+        </testsuite>
+        <testsuite name="feature">
+            <directory suffix="Test.php">../tests/feature</directory>
+        </testsuite>
+        <testsuite name="fork">
+            <directory suffix="Test.php">../tests/unit/Fork</directory>
+            <directory suffix="Test.php">../tests/integration/Fork</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">../app</directory>
+        </include>
+    </source>
+</phpunit>

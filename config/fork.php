@@ -31,5 +31,18 @@ return [
     // Reserve every transaction's external_id in fork_external_ids (unique per user group) inside
     // the same database transaction that creates it, so two overlapping imports cannot both insert.
     // After enabling on an existing database run: php artisan firefly-iii:fork:external-ids:backfill
-    'external_id_dedup' => (bool) env('FORK_EXTERNAL_ID_DEDUP', false)
+    'external_id_dedup' => (bool) env('FORK_EXTERNAL_ID_DEDUP', false),
+
+    // Allow transfers from asset accounts to liabilities (loan, debt, mortgage) and make the
+    // "correct transaction types" command expect exactly that for such pairs. Loan payments then
+    // leave spending reports and show up as transfers; balances are unaffected. Also enables the
+    // `convert_liability_transfer` rule action. After enabling on an existing database run
+    //   php artisan correction:transaction-types   (converts existing asset→liability withdrawals)
+    'liability_transfers' => (bool) env('FORK_LIABILITY_TRANSFERS', false),
+
+    // Master switch for transfer pairing: a bank feed that reports both legs of a card/loan payment
+    // (withdrawal from checking + deposit into the card) is merged into one transfer by amount and
+    // date. Per-user behaviour (patterns, window, target accounts, dry run) is a preference managed
+    // through GET/PUT /api/v1/fork/transfer-pairs/settings; the daily cron runs the sweep.
+    'transfer_pairing' => (bool) env('FORK_TRANSFER_PAIRING', false)
 ];

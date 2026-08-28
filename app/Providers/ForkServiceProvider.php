@@ -25,13 +25,17 @@ declare(strict_types=1);
 namespace FireflyIII\Providers;
 
 use FireflyIII\Factory\TransactionJournalFactory as UpstreamTransactionJournalFactory;
+use FireflyIII\Fork\Config\LiabilityTransfers;
 use FireflyIII\Fork\Console\Commands\AutoBudgetCatchUp;
 use FireflyIII\Fork\Console\Commands\ExternalIdsBackfill;
+use FireflyIII\Fork\Console\Commands\PairTransfers;
 use FireflyIII\Fork\Console\Commands\PurgeDeletedTransactions;
 use FireflyIII\Fork\Dedup\ExternalIdObserver;
 use FireflyIII\Fork\Factory\TransactionJournalFactory;
 use FireflyIII\Fork\Support\Steam;
+use FireflyIII\Fork\TransactionRules\Actions\ConvertToLiabilityTransfer;
 use FireflyIII\Models\TransactionJournalMeta;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
@@ -43,10 +47,17 @@ final class ForkServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        // Fork API under /api/v1/fork/* — same middleware as upstream's API group (routes/fork.php).
+        Route::middleware('api')
+            ->prefix('api/v1/fork')
+            ->group(function (): void {
+                $this->loadRoutesFrom(base_path('routes/fork.php'));
+            });
+
         TransactionJournalMeta::observe(ExternalIdObserver::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([AutoBudgetCatchUp::class, ExternalIdsBackfill::class, PurgeDeletedTransactions::class]);
+            $this->commands([AutoBudgetCatchUp::class, ExternalIdsBackfill::class, PairTransfers::class, PurgeDeletedTransactions::class]);
         }
     }
 
@@ -58,5 +69,18 @@ final class ForkServiceProvider extends ServiceProvider
         // Journal creation wrapped in a DB transaction so external_id reservations are atomic
         // (config fork.external_id_dedup; see FireflyIII\Fork\Dedup\ExternalIdRegistry).
         $this->app->bind(UpstreamTransactionJournalFactory::class, TransactionJournalFactory::class);
+
+        // Rule action `convert_liability_transfer` is always registered (so existing rules keep
+        // validating); it refuses to act unless the flag below is on.
+        config()->set('firefly.rule-actions.convert_liability_transfer', ConvertToLiabilityTransfer::class);
+        config()->set(
+            'firefly.context-rule-actions',
+            array_values(array_unique(array_merge((array) config('firefly.context-rule-actions'), ['convert_liability_transfer'])))
+        );
+
+        // Asset → liability transfers (config fork.liability_transfers; see Fork\Config\LiabilityTransfers).
+        if (LiabilityTransfers::enabled()) {
+            LiabilityTransfers::apply();
+        }
     }
 }

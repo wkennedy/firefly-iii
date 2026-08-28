@@ -58,6 +58,15 @@
     --fk-icon-green: #4ade80;
     --fk-icon-blue: #60a5fa;
 
+    --fk-chart-1: #5b9ce6;
+    --fk-chart-2: #4cc38a;
+    --fk-chart-3: #f0a33a;
+    --fk-chart-4: #e56aa0;
+    --fk-chart-5: #9b8cf0;
+    --fk-chart-6: #3fc1d1;
+    --fk-chart-7: #f16a64;
+    --fk-chart-8: #93a4bd;
+
     --fk-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     --fk-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
     --fk-focus: 0 0 0 3px rgba(91, 156, 230, 0.3);

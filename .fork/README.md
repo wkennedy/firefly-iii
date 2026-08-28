@@ -54,6 +54,10 @@ preference) after `firefly.css` on every v1 (Twig / AdminLTE 2) page, via a one-
 `resources/views/layout/default.twig` that includes `resources/views/fork/layout/overlay.twig`. Pure CSS — no
 markup or JavaScript changes — so it can be switched off per deployment and discarded when upstream ships its
 Blade/Bootstrap 5 rewrite (`upstream/adminlte`). The login/register pages are already Blade upstream and are not touched.
+The same switch loads `public/fork/js/charts-overlay.js` after each page's own scripts (second one-line hook in
+`default.twig`, partial `resources/views/fork/layout/scripts.twig`): a global Chart.js 2.7 plugin that restyles every
+chart from the overlay's CSS tokens — palette, grid, tooltips, no point-per-datum lines, doughnuts with a legend and
+"top N + Other" grouping, theme-aware "today" marker — without editing upstream's `charts.js`.
 Compare locally: `.fork/dev-up.sh --seed --flags FORK_UI_OVERLAY=false` shows the stock look.
 
 ## Local development

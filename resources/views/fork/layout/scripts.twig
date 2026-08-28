@@ -1,0 +1,5 @@
+{# FORK: chart restyle for the v1 layout (FORK_UI_OVERLAY). Must come AFTER the page's own scripts
+   block (which loads Chart.js and defines the charts) and before DOM-ready, when upstream draws them. #}
+{% if Config.get('fork.ui_overlay') %}
+    <script type="text/javascript" src="fork/js/charts-overlay.js?v={{ FF_BUILD_TIME }}" nonce="{{ JS_NONCE }}"></script>
+{% endif %}

@@ -274,6 +274,7 @@
 {% endif %}
 
 {% block scripts %}{% endblock %}
+{# FORK: optional UI overlay, chart restyle (FORK_UI_OVERLAY) #}{% include 'fork.layout.scripts' %}
 
 {% if config('firefly.tracker_site_id') != '' and config('firefly.tracker_url') != '' %}
     <!-- This tracker tag is only here because this instance of Firefly III was purposefully configured to include it -->

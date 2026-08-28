@@ -28,6 +28,7 @@ use FireflyIII\Factory\AccountFactory as UpstreamAccountFactory;
 use FireflyIII\Factory\TransactionJournalFactory as UpstreamTransactionJournalFactory;
 use FireflyIII\Fork\Config\LiabilityTransfers;
 use FireflyIII\Fork\Console\Commands\AutoBudgetCatchUp;
+use FireflyIII\Fork\Console\Commands\BudgetsApplyDefaults;
 use FireflyIII\Fork\Console\Commands\ExternalIdsBackfill;
 use FireflyIII\Fork\Console\Commands\PairTransfers;
 use FireflyIII\Fork\Console\Commands\PayeesMerge;
@@ -63,6 +64,7 @@ final class ForkServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 AutoBudgetCatchUp::class,
+                BudgetsApplyDefaults::class,
                 ExternalIdsBackfill::class,
                 PairTransfers::class,
                 PayeesMerge::class,

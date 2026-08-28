@@ -49,5 +49,11 @@ return [
     // Payee aliases: map raw payee strings ("AMAZON MKTPL*AB12CD34") to one canonical expense or
     // revenue account ("Amazon") BEFORE the account is created, so fragments never exist. Managed
     // through /api/v1/fork/payee-aliases; `firefly-iii:fork:payees:merge` folds existing fragments.
-    'payee_aliases' => (bool) env('FORK_PAYEE_ALIASES', false)
+    'payee_aliases' => (bool) env('FORK_PAYEE_ALIASES', false),
+
+    // Category → default budget: a withdrawal that has a category but no budget gets the budget
+    // mapped for that category, on creation AND on later category corrections. Never overrides a
+    // budget that is already set. Managed through /api/v1/fork/category-budgets;
+    // `firefly-iii:fork:budgets:apply-defaults` backfills a date range.
+    'category_budgets' => (bool) env('FORK_CATEGORY_BUDGETS', false)
 ];

@@ -44,3 +44,10 @@ Route::put('payee-aliases/{id}', [FireflyIII\Fork\Http\Controllers\PayeeAliasCon
 Route::delete('payee-aliases/{id}', [FireflyIII\Fork\Http\Controllers\PayeeAliasController::class, 'destroy'])
     ->whereNumber('id')
     ->name('api.v1.fork.payee-aliases.destroy');
+
+Route::get('category-budgets', [FireflyIII\Fork\Http\Controllers\CategoryBudgetController::class, 'index'])->name('api.v1.fork.category-budgets.index');
+Route::post('category-budgets', [FireflyIII\Fork\Http\Controllers\CategoryBudgetController::class, 'store'])->name('api.v1.fork.category-budgets.store');
+Route::post('category-budgets/apply', [FireflyIII\Fork\Http\Controllers\CategoryBudgetController::class, 'apply'])->name('api.v1.fork.category-budgets.apply');
+Route::delete('category-budgets/{id}', [FireflyIII\Fork\Http\Controllers\CategoryBudgetController::class, 'destroy'])
+    ->whereNumber('id')
+    ->name('api.v1.fork.category-budgets.destroy');

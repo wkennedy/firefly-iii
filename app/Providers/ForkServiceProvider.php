@@ -24,8 +24,14 @@ declare(strict_types=1);
 
 namespace FireflyIII\Providers;
 
+use FireflyIII\Factory\TransactionJournalFactory as UpstreamTransactionJournalFactory;
 use FireflyIII\Fork\Console\Commands\AutoBudgetCatchUp;
+use FireflyIII\Fork\Console\Commands\ExternalIdsBackfill;
+use FireflyIII\Fork\Console\Commands\PurgeDeletedTransactions;
+use FireflyIII\Fork\Dedup\ExternalIdObserver;
+use FireflyIII\Fork\Factory\TransactionJournalFactory;
 use FireflyIII\Fork\Support\Steam;
+use FireflyIII\Models\TransactionJournalMeta;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
@@ -37,8 +43,10 @@ final class ForkServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        TransactionJournalMeta::observe(ExternalIdObserver::class);
+
         if ($this->app->runningInConsole()) {
-            $this->commands([AutoBudgetCatchUp::class]);
+            $this->commands([AutoBudgetCatchUp::class, ExternalIdsBackfill::class, PurgeDeletedTransactions::class]);
         }
     }
 
@@ -47,5 +55,8 @@ final class ForkServiceProvider extends ServiceProvider
     {
         // Steam with the floatalize() fix (see FireflyIII\Fork\Support\Steam).
         $this->app->bind('steam', static fn(): Steam => new Steam());
+        // Journal creation wrapped in a DB transaction so external_id reservations are atomic
+        // (config fork.external_id_dedup; see FireflyIII\Fork\Dedup\ExternalIdRegistry).
+        $this->app->bind(UpstreamTransactionJournalFactory::class, TransactionJournalFactory::class);
     }
 }

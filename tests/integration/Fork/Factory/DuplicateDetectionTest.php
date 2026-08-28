@@ -27,6 +27,7 @@ namespace Tests\integration\Fork\Factory;
 use FireflyIII\Exceptions\DuplicateTransactionException;
 use FireflyIII\Models\TransactionGroup;
 use FireflyIII\User;
+use Override;
 use Tests\integration\TestCase;
 use Tests\integration\Traits\CreatesTransactionGroups;
 
@@ -43,6 +44,14 @@ use Tests\integration\Traits\CreatesTransactionGroups;
 final class DuplicateDetectionTest extends TestCase
 {
     use CreatesTransactionGroups;
+
+    #[Override]
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // upstream behaviour only; the fork's external_id registry is covered by Dedup\ExternalIdDedupTest
+        config(['fork.external_id_dedup' => false]);
+    }
 
     private const array ROW = ['external_id' => 'simplefin-1', 'description' => 'WHOLEFDS MKT', 'amount' => '42.00'];
 
@@ -106,7 +115,7 @@ final class DuplicateDetectionTest extends TestCase
         $this->createTransactionGroup($user, [self::ROW + ['type' => 'withdrawal']], errorIfDuplicate: true);
     }
 
-    public function testSameExternalIdWithDifferentDateIsNotADuplicate(): void
+    public function testSameExternalIdWithDifferentDateIsNotADuplicateUpstream(): void
     {
         // The contract the importer relies on: dedup is by row hash, so a re-delivered
         // transaction whose date (or any field) changed slips through even with the same external_id.

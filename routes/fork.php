@@ -51,3 +51,10 @@ Route::post('category-budgets/apply', [FireflyIII\Fork\Http\Controllers\Category
 Route::delete('category-budgets/{id}', [FireflyIII\Fork\Http\Controllers\CategoryBudgetController::class, 'destroy'])
     ->whereNumber('id')
     ->name('api.v1.fork.category-budgets.destroy');
+
+Route::get('insight/budget-suggestions', [FireflyIII\Fork\Http\Controllers\BudgetSuggestionController::class, 'index'])->name(
+    'api.v1.fork.insight.budget-suggestions'
+);
+Route::post('insight/budget-suggestions/apply', [FireflyIII\Fork\Http\Controllers\BudgetSuggestionController::class, 'apply'])->name(
+    'api.v1.fork.insight.budget-suggestions.apply'
+);

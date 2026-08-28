@@ -29,6 +29,7 @@ use FireflyIII\Factory\TransactionJournalFactory as UpstreamTransactionJournalFa
 use FireflyIII\Fork\Config\LiabilityTransfers;
 use FireflyIII\Fork\Console\Commands\AutoBudgetCatchUp;
 use FireflyIII\Fork\Console\Commands\BudgetsApplyDefaults;
+use FireflyIII\Fork\Console\Commands\BudgetsSuggest;
 use FireflyIII\Fork\Console\Commands\ExternalIdsBackfill;
 use FireflyIII\Fork\Console\Commands\PairTransfers;
 use FireflyIII\Fork\Console\Commands\PayeesMerge;
@@ -37,9 +38,11 @@ use FireflyIII\Fork\Console\Commands\PurgeDeletedTransactions;
 use FireflyIII\Fork\Dedup\ExternalIdObserver;
 use FireflyIII\Fork\Factory\AccountFactory;
 use FireflyIII\Fork\Factory\TransactionJournalFactory;
+use FireflyIII\Fork\Services\JournalUpdateService;
 use FireflyIII\Fork\Support\Steam;
 use FireflyIII\Fork\TransactionRules\Actions\ConvertToLiabilityTransfer;
 use FireflyIII\Models\TransactionJournalMeta;
+use FireflyIII\Services\Internal\Update\JournalUpdateService as UpstreamJournalUpdateService;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Override;
@@ -65,6 +68,7 @@ final class ForkServiceProvider extends ServiceProvider
             $this->commands([
                 AutoBudgetCatchUp::class,
                 BudgetsApplyDefaults::class,
+                BudgetsSuggest::class,
                 ExternalIdsBackfill::class,
                 PairTransfers::class,
                 PayeesMerge::class,
@@ -84,6 +88,8 @@ final class ForkServiceProvider extends ServiceProvider
         $this->app->bind(UpstreamTransactionJournalFactory::class, TransactionJournalFactory::class);
         // Payee aliases applied before an expense/revenue account is created (config fork.payee_aliases).
         $this->app->bind(UpstreamAccountFactory::class, AccountFactory::class);
+        // Category corrections become learned rules (config fork.learned_rules).
+        $this->app->bind(UpstreamJournalUpdateService::class, JournalUpdateService::class);
 
         // Rule action `convert_liability_transfer` is always registered (so existing rules keep
         // validating); it refuses to act unless the flag below is on.

@@ -55,5 +55,16 @@ return [
     // mapped for that category, on creation AND on later category corrections. Never overrides a
     // budget that is already set. Managed through /api/v1/fork/category-budgets;
     // `firefly-iii:fork:budgets:apply-defaults` backfills a date range.
-    'category_budgets' => (bool) env('FORK_CATEGORY_BUDGETS', false)
+    'category_budgets' => (bool) env('FORK_CATEGORY_BUDGETS', false),
+
+    // Learned rules: when a person changes a transaction's category, upsert a rule in the
+    // "Learned (fork)" rule group — payee → category — so the next import of that payee is
+    // categorised by Firefly itself. Automation never teaches: requests carrying the header
+    // `X-Fork-Source: automation`, or authenticated with a token named below.
+    'learned_rules'       => (bool) env('FORK_LEARNED_RULES', false),
+    'learned_rules_group' => (string) env('FORK_LEARNED_RULES_GROUP', 'Learned (fork)'),
+
+    // Comma-separated names of personal access tokens whose writes count as automation (never
+    // teach a learned rule), e.g. the categorizer's token. Case-insensitive.
+    'automation_token_names' => (string) env('FORK_AUTOMATION_TOKEN_NAMES', '')
 ];

@@ -77,9 +77,9 @@ You can read more about the purpose of Firefly III in the [documentation](https:
 
 ## Features
 
-Firefly III is pretty feature packed. Some important stuff first:
+Firefly III is pretty feature-packed. Some important stuff first:
 
-* It is completely self-hosted and isolated, and will never contact external servers until you explicitly tell it to.
+* It is completely self-hosted and isolated and will never contact external servers until you explicitly tell it to.
 * It features a REST JSON API that covers almost every part of Firefly III.
 
 The most exciting features are:

@@ -42,7 +42,7 @@ final class ListAccountsTool implements ChatTool
         return [
             'name'        => $this->name(),
             'description' => 'List the accounts in this ledger: asset accounts (current accounts, savings, cards) and liabilities (loans, debts, mortgages). Call this before answering anything that names an account.',
-            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
         ];
     }
 
@@ -56,24 +56,24 @@ final class ListAccountsTool implements ChatTool
     public function run(User $user, array $arguments): array
     {
         /** @var AccountRepositoryInterface $repository */
-        $repository  = app(AccountRepositoryInterface::class);
+        $repository = app(AccountRepositoryInterface::class);
         $repository->setUser($user);
 
-        $describe    = static fn(Account $account): array => [
+        $describe = static fn(Account $account): array => [
             'name'     => $account->name,
             'type'     => strtolower((string) $account->accountType?->type),
-            'currency' => $repository->getAccountCurrency($account)?->code,
+            'currency' => $repository->getAccountCurrency($account)?->code
         ];
         $assets      = $repository->getActiveAccountsByType([AccountTypeEnum::ASSET->value]);
         $liabilities = $repository->getActiveAccountsByType([
             AccountTypeEnum::LOAN->value,
             AccountTypeEnum::DEBT->value,
-            AccountTypeEnum::MORTGAGE->value,
+            AccountTypeEnum::MORTGAGE->value
         ]);
 
         return [
             'assets'      => $assets->map($describe)->values()->all(),
-            'liabilities' => $liabilities->map($describe)->values()->all(),
+            'liabilities' => $liabilities->map($describe)->values()->all()
         ];
     }
 }

@@ -37,7 +37,9 @@ use Override;
  */
 final class BudgetSuggestionsTool implements ChatTool
 {
-    public function __construct(private readonly BudgetSuggester $suggester) {}
+    public function __construct(
+        private readonly BudgetSuggester $suggester
+    ) {}
 
     #[Override]
     public function definition(): array
@@ -48,10 +50,10 @@ final class BudgetSuggestionsTool implements ChatTool
             'parameters'  => [
                 'type'       => 'object',
                 'properties' => [
-                    'months' => ['type' => 'integer', 'description' => 'How many complete months to look back over. Defaults to 6.'],
+                    'months' => ['type' => 'integer', 'description' => 'How many complete months to look back over. Defaults to 6.']
                 ],
-                'required'   => [],
-            ],
+                'required'   => []
+            ]
         ];
     }
 

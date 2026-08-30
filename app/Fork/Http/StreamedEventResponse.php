@@ -50,8 +50,11 @@ final class StreamedEventResponse extends StreamedResponse
      * `getCallback(): ?Closure`. A method on the class itself takes precedence over the one the
      * trait brings in, so declaring it here is what keeps the trait usable at all.
      */
+    // @mago-expect lint:no-redundant-method-override — it is not redundant: declaring it here is
+    // what stops ResponseTrait's untyped getCallback() from clashing fatally with Symfony's
+    // `getCallback(): ?Closure`. Remove it and every streaming request dies at class load.
     #[Override]
-    public function getCallback(): ?Closure
+    public function getCallback(): null|Closure
     {
         return parent::getCallback();
     }

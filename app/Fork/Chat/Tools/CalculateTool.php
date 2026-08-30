@@ -38,7 +38,9 @@ final class CalculateTool implements ChatTool
 {
     use FormatsMoney;
 
-    public function __construct(private readonly Calculator $calculator) {}
+    public function __construct(
+        private readonly Calculator $calculator
+    ) {}
 
     #[Override]
     public function definition(): array
@@ -49,10 +51,10 @@ final class CalculateTool implements ChatTool
             'parameters'  => [
                 'type'       => 'object',
                 'properties' => [
-                    'expression' => ['type' => 'string', 'description' => 'For example "1071.56 / 3" or "(2200 + 411.88) * 0.25".'],
+                    'expression' => ['type' => 'string', 'description' => 'For example "1071.56 / 3" or "(2200 + 411.88) * 0.25".']
                 ],
-                'required'   => ['expression'],
-            ],
+                'required'   => ['expression']
+            ]
         ];
     }
 
@@ -67,12 +69,13 @@ final class CalculateTool implements ChatTool
     {
         $expression = trim((string) ($arguments['expression'] ?? ''));
         $exact      = $this->calculator->evaluate($expression);
+        $trimmed    = rtrim(rtrim($exact, '0'), '.');
 
         return [
             'expression' => $expression,
             // Both forms: the exact value, and the one to quote when the answer is money.
-            'result'     => rtrim(rtrim($exact, '0'), '.') ?: '0',
-            'rounded_2'  => $this->money($exact),
+            'result'    => '' === $trimmed ? '0' : $trimmed,
+            'rounded_2' => $this->money($exact)
         ];
     }
 }

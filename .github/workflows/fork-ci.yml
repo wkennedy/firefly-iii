@@ -60,7 +60,9 @@ jobs:
         # Only what we own; upstream files are formatted by upstream's release job.
         run: |
           FORK_PATHS="tests/integration/Fork tests/unit/Fork tests/integration/Traits/ForkTestSupport.php tests/integration/Traits/CreatesTransactionGroups.php"
-          for d in app/Fork database/migrations; do
+          # `app`, not `app/Fork`: the glob below looks for */Fork* inside $d, so listing app/Fork
+          # here matched nothing and every class under app/Fork went unchecked.
+          for d in app database/migrations; do
             [ -d "$d" ] && FORK_PATHS="$FORK_PATHS $(ls -d $d/*fork* $d/Fork* 2>/dev/null | tr '\n' ' ')"
           done
           echo "Checking: $FORK_PATHS"

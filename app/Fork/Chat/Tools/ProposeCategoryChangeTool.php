@@ -46,7 +46,9 @@ final class ProposeCategoryChangeTool implements ChatTool
 {
     use FormatsMoney;
 
-    public function __construct(private readonly ProposalStore $proposals) {}
+    public function __construct(
+        private readonly ProposalStore $proposals
+    ) {}
 
     #[Override]
     public function definition(): array
@@ -58,10 +60,10 @@ final class ProposeCategoryChangeTool implements ChatTool
                 'type'       => 'object',
                 'properties' => [
                     'transaction_id' => ['type' => 'integer', 'description' => 'The "id" field of a transaction returned by search_transactions.'],
-                    'category'       => ['type' => 'string', 'description' => 'The exact name of an existing category (see list_categories).'],
+                    'category'       => ['type' => 'string', 'description' => 'The exact name of an existing category (see list_categories).']
                 ],
-                'required'   => ['transaction_id', 'category'],
-            ],
+                'required'   => ['transaction_id', 'category']
+            ]
         ];
     }
 
@@ -74,8 +76,8 @@ final class ProposeCategoryChangeTool implements ChatTool
     #[Override]
     public function run(User $user, array $arguments): array
     {
-        $id       = (int) ($arguments['transaction_id'] ?? 0);
-        $wanted   = trim((string) ($arguments['category'] ?? ''));
+        $id     = (int) ($arguments['transaction_id'] ?? 0);
+        $wanted = trim((string) ($arguments['category'] ?? ''));
         if (0 === $id) {
             throw new ToolException('"transaction_id" is required; take it from the "id" field of a search_transactions row.');
         }
@@ -85,11 +87,7 @@ final class ProposeCategoryChangeTool implements ChatTool
 
         // Scoped to this user's own journals: an id the model invented, or one belonging to someone
         // else, is simply not found.
-        $journal  = TransactionJournal::query()
-            ->where('id', $id)
-            ->where('user_id', $user->id)
-            ->first()
-        ;
+        $journal = TransactionJournal::query()->where('id', $id)->where('user_id', $user->id)->first();
         if (!$journal instanceof TransactionJournal) {
             throw new ToolException(sprintf('there is no transaction #%d in this ledger.', $id));
         }
@@ -97,12 +95,12 @@ final class ProposeCategoryChangeTool implements ChatTool
         /** @var CategoryRepositoryInterface $categories */
         $categories = app(CategoryRepositoryInterface::class);
         $categories->setUser($user);
-        $category   = $categories->findByName($wanted);
+        $category = $categories->findByName($wanted);
         if (!$category instanceof Category) {
             throw new ToolException(sprintf('there is no category called "%s". Call list_categories and use a name from it.', $wanted));
         }
 
-        $current    = $journal->categories()->first()?->name;
+        $current = $journal->categories()->first()?->name;
         if ($current === $category->name) {
             return ['proposed' => false, 'reason' => sprintf('transaction #%d is already categorised as "%s".', $id, $category->name)];
         }
@@ -113,10 +111,10 @@ final class ProposeCategoryChangeTool implements ChatTool
                 'type'        => 'category_change',
                 'description' => (string) $journal->description,
                 'date'        => $journal->date->format('Y-m-d'),
-                'amount'      => $this->money(Steam::positive((string) ($transaction?->amount ?? '0'))),
+                'amount'      => $this->money(Steam::positive((string) ($transaction->amount ?? '0'))),
                 'currency'    => (string) $transaction?->transactionCurrency?->code,
                 'from'        => $current,
-                'to'          => $category->name,
+                'to'          => $category->name
             ],
             $user->id,
             $journal->id,
@@ -129,7 +127,7 @@ final class ProposeCategoryChangeTool implements ChatTool
             'transaction' => ['id' => $journal->id, 'description' => $card['description'], 'date' => $card['date']],
             'from'        => $current,
             'to'          => $category->name,
-            'note'        => 'NOTHING HAS CHANGED YET. The person has been shown a confirmation card; tell them to confirm it. Do not claim the category was changed.',
+            'note'        => 'NOTHING HAS CHANGED YET. The person has been shown a confirmation card; tell them to confirm it. Do not claim the category was changed.'
         ];
     }
 }

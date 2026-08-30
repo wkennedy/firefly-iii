@@ -27,7 +27,6 @@ namespace FireflyIII\Fork\Chat\Tools;
 use FireflyIII\Models\AutoBudget;
 use FireflyIII\Models\Budget;
 use FireflyIII\Repositories\Budget\BudgetRepositoryInterface;
-use FireflyIII\Support\Facades\Steam;
 use FireflyIII\User;
 use Override;
 
@@ -45,7 +44,7 @@ final class ListBudgetsTool implements ChatTool
         return [
             'name'        => $this->name(),
             'description' => 'List the active budgets and their recurring (auto-budget) amount, if any. Call this before answering anything that names a budget. For spent-vs-limit figures use budget_status.',
-            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
         ];
     }
 
@@ -62,17 +61,21 @@ final class ListBudgetsTool implements ChatTool
         $repository = app(BudgetRepositoryInterface::class);
         $repository->setUser($user);
 
-        $budgets    = $repository->getActiveBudgets()->map(function (Budget $budget): array {
-            /** @var null|AutoBudget $auto */
-            $auto = $budget->autoBudgets()->first();
+        $budgets = $repository
+            ->getActiveBudgets()
+            ->map(function (Budget $budget): array {
+                /** @var null|AutoBudget $auto */
+                $auto = $budget->autoBudgets()->first();
 
-            return [
-                'name'                => $budget->name,
-                'recurring_amount'    => null === $auto ? null : $this->money((string) $auto->amount, $auto->transactionCurrency?->decimal_places ?? 2),
-                'recurring_period'    => $auto?->period,
-                'recurring_currency'  => $auto?->transactionCurrency?->code,
-            ];
-        })->values()->all();
+                return [
+                    'name'               => $budget->name,
+                    'recurring_amount'   => null === $auto ? null : $this->money((string) $auto->amount, $auto->transactionCurrency->decimal_places ?? 2),
+                    'recurring_period'   => $auto?->period,
+                    'recurring_currency' => $auto?->transactionCurrency?->code
+                ];
+            })
+            ->values()
+            ->all();
 
         return ['budgets' => $budgets, 'count' => count($budgets)];
     }

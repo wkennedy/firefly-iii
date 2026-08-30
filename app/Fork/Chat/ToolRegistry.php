@@ -66,7 +66,7 @@ final class ToolRegistry
         AccountBalancesTool::class,
         IncomeVsExpenseTool::class,
         BudgetSuggestionsTool::class,
-        CalculateTool::class,
+        CalculateTool::class
     ];
 
     /**
@@ -76,7 +76,7 @@ final class ToolRegistry
      * @var list<class-string<ChatTool>>
      */
     private const array WRITE_TOOLS = [
-        ProposeCategoryChangeTool::class,
+        ProposeCategoryChangeTool::class
     ];
 
     /** @var array<string, ChatTool> */
@@ -99,16 +99,6 @@ final class ToolRegistry
                 $this->writeNames[] = $tool->name();
             }
         }
-    }
-
-    /**
-     * Whether a tool can lead to a write. Consumers that must stay read-only (the tool API behind
-     * the MCP shim) ask this rather than keeping their own list, so adding a write tool cannot
-     * quietly widen what they expose.
-     */
-    public function isWrite(string $name): bool
-    {
-        return in_array($name, $this->writeNames, true);
     }
 
     /**
@@ -139,7 +129,7 @@ final class ToolRegistry
      */
     public function execute(User $user, string $name, string $rawArguments): array
     {
-        $tool      = $this->tools[$name] ?? null;
+        $tool = $this->tools[$name] ?? null;
         if (!$tool instanceof ChatTool) {
             return ['error' => sprintf('there is no tool called "%s". Available: %s.', $name, implode(', ', array_keys($this->tools)))];
         }
@@ -157,6 +147,16 @@ final class ToolRegistry
 
             return ['error' => sprintf('the "%s" tool failed and returned nothing.', $name)];
         }
+    }
+
+    /**
+     * Whether a tool can lead to a write. Consumers that must stay read-only (the tool API behind
+     * the MCP shim) ask this rather than keeping their own list, so adding a write tool cannot
+     * quietly widen what they expose.
+     */
+    public function isWrite(string $name): bool
+    {
+        return in_array($name, $this->writeNames, true);
     }
 
     /**

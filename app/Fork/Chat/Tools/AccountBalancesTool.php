@@ -54,10 +54,10 @@ final class AccountBalancesTool implements ChatTool
             'parameters'  => [
                 'type'       => 'object',
                 'properties' => [
-                    'date' => ['type' => 'string', 'description' => 'Balance as it was at the end of this day, YYYY-MM-DD. Defaults to today.'],
+                    'date' => ['type' => 'string', 'description' => 'Balance as it was at the end of this day, YYYY-MM-DD. Defaults to today.']
                 ],
-                'required'   => [],
-            ],
+                'required'   => []
+            ]
         ];
     }
 
@@ -70,19 +70,19 @@ final class AccountBalancesTool implements ChatTool
     #[Override]
     public function run(User $user, array $arguments): array
     {
-        $date        = null === ($arguments['date'] ?? null) ? Carbon::now() : $this->range(['start' => $arguments['date'], 'end' => $arguments['date']])[1];
+        $date = null === ($arguments['date'] ?? null) ? Carbon::now() : $this->range(['start' => $arguments['date'], 'end' => $arguments['date']])[1];
 
         /** @var AccountRepositoryInterface $repository */
-        $repository  = app(AccountRepositoryInterface::class);
+        $repository = app(AccountRepositoryInterface::class);
         $repository->setUser($user);
 
         $assets      = $repository->getActiveAccountsByType([AccountTypeEnum::ASSET->value]);
         $liabilities = $repository->getActiveAccountsByType([
             AccountTypeEnum::LOAN->value,
             AccountTypeEnum::DEBT->value,
-            AccountTypeEnum::MORTGAGE->value,
+            AccountTypeEnum::MORTGAGE->value
         ]);
-        $totals      = [];
+        $totals = [];
 
         return [
             'date'        => $date->format('Y-m-d'),
@@ -91,7 +91,7 @@ final class AccountBalancesTool implements ChatTool
             // Only asset accounts are summed: adding a mortgage to a current account produces a
             // number that means nothing, and the model would happily present it as "your money".
             'asset_totals' => array_values($totals),
-            'note'        => 'Totals cover asset accounts only, per currency. Liabilities are listed separately and are negative when owed.',
+            'note'         => 'Totals cover asset accounts only, per currency. Liabilities are listed separately and are negative when owed.'
         ];
     }
 
@@ -110,7 +110,7 @@ final class AccountBalancesTool implements ChatTool
             $balance  = Steam::bcround($final[$currency->code] ?? '0', $currency->decimal_places);
             $rows[]   = ['name' => $account->name, 'balance' => $balance, 'currency' => $currency->code];
             if ($account->accountType?->type === AccountTypeEnum::ASSET->value) {
-                $totals[$currency->code] ??= ['currency' => $currency->code, 'total' => '0'];
+                $totals[$currency->code]          ??= ['currency' => $currency->code, 'total' => '0'];
                 $totals[$currency->code]['total'] = bcadd($totals[$currency->code]['total'], $balance, $currency->decimal_places);
             }
         }

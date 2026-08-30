@@ -63,10 +63,10 @@ final class BudgetStatusTool implements ChatTool
                 'type'       => 'object',
                 'properties' => [
                     'start' => ['type' => 'string', 'description' => 'First day of the period, YYYY-MM-DD.'],
-                    'end'   => ['type' => 'string', 'description' => 'Last day of the period, YYYY-MM-DD (inclusive).'],
+                    'end'   => ['type' => 'string', 'description' => 'Last day of the period, YYYY-MM-DD (inclusive).']
                 ],
-                'required'   => ['start', 'end'],
-            ],
+                'required'   => ['start', 'end']
+            ]
         ];
     }
 
@@ -82,18 +82,18 @@ final class BudgetStatusTool implements ChatTool
         [$start, $end] = $this->range($arguments);
 
         /** @var BudgetRepositoryInterface $budgets */
-        $budgets       = app(BudgetRepositoryInterface::class);
+        $budgets = app(BudgetRepositoryInterface::class);
         /** @var OperationsRepositoryInterface $operations */
-        $operations    = app(OperationsRepositoryInterface::class);
+        $operations = app(OperationsRepositoryInterface::class);
         /** @var BudgetLimitRepositoryInterface $limits */
-        $limits        = app(BudgetLimitRepositoryInterface::class);
+        $limits = app(BudgetLimitRepositoryInterface::class);
         /** @var NoBudgetRepositoryInterface $noBudget */
-        $noBudget      = app(NoBudgetRepositoryInterface::class);
+        $noBudget = app(NoBudgetRepositoryInterface::class);
         foreach ([$budgets, $operations, $limits, $noBudget] as $repository) {
             $repository->setUser($user);
         }
 
-        $rows          = [];
+        $rows = [];
         foreach ($budgets->getActiveBudgets() as $budget) {
             /** @var Budget $budget */
             $spentPerCurrency = $operations->sumExpenses($start, $end, null, new Collection([$budget]));
@@ -104,33 +104,33 @@ final class BudgetStatusTool implements ChatTool
                 $spent    = bcadd($spent, Steam::positive((string) $sum['sum']), 12);
                 $currency ??= (string) $sum['currency_code'];
             }
-            $rows[]           = [
+            $rows[] = [
                 'budget'                 => $budget->name,
                 'spent'                  => $this->money($spent),
                 'limit'                  => $limit['amount'],
                 'left'                   => null === $limit['amount'] ? null : $this->money(bcsub($limit['amount'], $spent, 12)),
                 'used_percent'           => $this->percentage($spent, $limit['amount']),
                 'currency'               => $currency,
-                'limit_from_auto_budget' => $limit['from_auto'],
+                'limit_from_auto_budget' => $limit['from_auto']
             ];
         }
         usort($rows, static fn(array $a, array $b): int => ($b['used_percent'] ?? -1) <=> ($a['used_percent'] ?? -1));
 
-        $outside       = [];
+        $outside = [];
         foreach ($noBudget->sumExpenses($start, $end) as $sum) {
             $outside[] = ['amount' => $this->money(Steam::positive((string) $sum['sum'])), 'currency' => (string) $sum['currency_code']];
         }
 
         return [
-            'start'             => $start->format('Y-m-d'),
-            'end'               => $end->format('Y-m-d'),
-            'budgets'           => $rows,
-            'outside_budgets'   => $outside,
-            'notes'             => [
+            'start'           => $start->format('Y-m-d'),
+            'end'             => $end->format('Y-m-d'),
+            'budgets'         => $rows,
+            'outside_budgets' => $outside,
+            'notes'           => [
                 'A null limit means the budget has no amount set for this period; "left" and "used_percent" are then null too.',
                 'limit_from_auto_budget means no limit exists for this period yet, so the budget\'s recurring amount is shown instead.',
-                'outside_budgets is spending on withdrawals with no budget at all; it is not part of any row above.',
-            ],
+                'outside_budgets is spending on withdrawals with no budget at all; it is not part of any row above.'
+            ]
         ];
     }
 
@@ -151,7 +151,7 @@ final class BudgetStatusTool implements ChatTool
         }
 
         /** @var null|AutoBudget $auto */
-        $auto     = $budget->autoBudgets()->first();
+        $auto = $budget->autoBudgets()->first();
         if (null === $auto) {
             return ['amount' => null, 'currency' => null, 'from_auto' => false];
         }
@@ -159,7 +159,7 @@ final class BudgetStatusTool implements ChatTool
         return ['amount' => $this->money((string) $auto->amount), 'currency' => $auto->transactionCurrency?->code, 'from_auto' => true];
     }
 
-    private function percentage(string $spent, ?string $limit): ?float
+    private function percentage(string $spent, null|string $limit): null|float
     {
         if (null === $limit || 0 === bccomp($limit, '0', 12)) {
             return null;

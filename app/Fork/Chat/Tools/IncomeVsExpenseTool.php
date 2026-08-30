@@ -53,10 +53,10 @@ final class IncomeVsExpenseTool implements ChatTool
                 'type'       => 'object',
                 'properties' => [
                     'start' => ['type' => 'string', 'description' => 'First day of the period, YYYY-MM-DD.'],
-                    'end'   => ['type' => 'string', 'description' => 'Last day of the period, YYYY-MM-DD (inclusive).'],
+                    'end'   => ['type' => 'string', 'description' => 'Last day of the period, YYYY-MM-DD (inclusive).']
                 ],
-                'required'   => ['start', 'end'],
-            ],
+                'required'   => ['start', 'end']
+            ]
         ];
     }
 
@@ -72,13 +72,13 @@ final class IncomeVsExpenseTool implements ChatTool
         [$start, $end] = $this->range($arguments);
 
         /** @var OperationsRepositoryInterface $operations */
-        $operations    = app(OperationsRepositoryInterface::class);
+        $operations = app(OperationsRepositoryInterface::class);
         /** @var NoCategoryRepositoryInterface $noCategory */
-        $noCategory    = app(NoCategoryRepositoryInterface::class);
+        $noCategory = app(NoCategoryRepositoryInterface::class);
         $operations->setUser($user);
         $noCategory->setUser($user);
 
-        $totals        = [];
+        $totals = [];
         $this->add($totals, $operations->sumIncome($start, $end), 'income');
         $this->add($totals, $noCategory->sumIncome($start, $end), 'income');
         $this->add($totals, $operations->sumExpenses($start, $end), 'spent');
@@ -91,10 +91,10 @@ final class IncomeVsExpenseTool implements ChatTool
         }
 
         return [
-            'start'   => $start->format('Y-m-d'),
-            'end'     => $end->format('Y-m-d'),
-            'totals'  => array_values($totals),
-            'note'    => 'difference is income minus spending; a negative difference means more went out than came in.',
+            'start'  => $start->format('Y-m-d'),
+            'end'    => $end->format('Y-m-d'),
+            'totals' => array_values($totals),
+            'note'   => 'difference is income minus spending; a negative difference means more went out than came in.'
         ];
     }
 
@@ -105,9 +105,9 @@ final class IncomeVsExpenseTool implements ChatTool
     private function add(array &$totals, array $sums, string $key): void
     {
         foreach ($sums as $sum) {
-            $code                 = (string) $sum['currency_code'];
-            $totals[$code] ??= ['currency' => $code, 'income' => '0', 'spent' => '0'];
-            $totals[$code][$key]  = bcadd($totals[$code][$key], Steam::positive((string) $sum['sum']), 12);
+            $code                = (string) $sum['currency_code'];
+            $totals[$code]       ??= ['currency' => $code, 'income' => '0', 'spent' => '0'];
+            $totals[$code][$key] = bcadd($totals[$code][$key], Steam::positive((string) $sum['sum']), 12);
         }
     }
 }

@@ -51,26 +51,26 @@ final class ChatTest extends TestCase
         $this->spend($user, 'Groceries', '112.44', '2026-05-06', 'WHOLEFDS MKT');
         $this->spend($user, 'Groceries', '90.00', '2026-04-30', 'WHOLEFDS MKT'); // outside the range
 
-        $this->model
-            ->willCall('sum_by_category', ['start' => '2026-05-01', 'end' => '2026-05-31'])
-            ->willSay('You spent 63.10 EUR on Dining Out in May 2026.')
-        ;
+        $this->model->willCall('sum_by_category', ['start' => '2026-05-01', 'end' => '2026-05-31'])->willSay('You spent 63.10 EUR on Dining Out in May 2026.');
 
         $response = $this->postJson(route('fork.chat.send'), ['message' => 'How much did I spend on Dining Out in May 2026?']);
         $response
             ->assertOk()
             ->assertJsonPath('data.answer', 'You spent 63.10 EUR on Dining Out in May 2026.')
             ->assertJsonPath('data.tools.0.name', 'sum_by_category')
-            ->assertJsonPath('data.hit_round_limit', false)
-        ;
+            ->assertJsonPath('data.hit_round_limit', false);
 
         // The numbers the model was given are the ones that matter.
         $result = $this->model->toolResult();
         self::assertSame('2026-05-01', $result['start']);
-        self::assertSame([
-            ['category' => 'Groceries', 'currency_code' => 'EUR', 'amount' => '112.44', 'transactions' => 1],
-            ['category' => 'Dining Out', 'currency_code' => 'EUR', 'amount' => '63.10', 'transactions' => 2],
-        ], $result['totals'], 'totals are per category, biggest first, April excluded');
+        self::assertSame(
+            [
+                ['category' => 'Groceries', 'currency_code' => 'EUR', 'amount' => '112.44', 'transactions' => 1],
+                ['category' => 'Dining Out', 'currency_code' => 'EUR', 'amount' => '63.10', 'transactions' => 2]
+            ],
+            $result['totals'],
+            'totals are per category, biggest first, April excluded'
+        );
     }
 
     public function testForcesAnAnswerWhenTheRoundBudgetRunsOut(): void
@@ -79,18 +79,11 @@ final class ChatTest extends TestCase
         $this->spend($user, 'Groceries', '10.00', '2026-05-02', 'WHOLEFDS MKT');
         config(['fork.chat_max_rounds' => 2]);
 
-        $this->model
-            ->willCall('list_categories', [])
-            ->willCall('list_categories', [])
-            ->willSay('I could not finish looking that up.')
-        ;
+        $this->model->willCall('list_categories', [])->willCall('list_categories', [])->willSay('I could not finish looking that up.');
 
-        $this->postJson(route('fork.chat.send'), ['message' => 'go in circles'])
-            ->assertOk()
-            ->assertJsonPath('data.hit_round_limit', true)
-            ->assertJsonPath('data.rounds', 2)
-            ->assertJsonPath('data.answer', 'I could not finish looking that up.')
-        ;
+        $this->postJson(route('fork.chat.send'), [
+            'message' => 'go in circles'
+        ])->assertOk()->assertJsonPath('data.hit_round_limit', true)->assertJsonPath('data.rounds', 2)->assertJsonPath('data.answer', 'I could not finish looking that up.');
         self::assertCount(3, $this->model->calls, 'two tool rounds, then one forced answer');
         self::assertSame([], $this->model->calls[2]['tools'], 'the forced answer is asked for with no tools available');
     }
@@ -133,7 +126,7 @@ final class ChatTest extends TestCase
         // A `tool` message from the browser would be invented tool output in the model's mouth.
         $this->postJson(route('fork.chat.send'), [
             'message' => 'hello',
-            'history' => [['role' => 'tool', 'content' => '{"totals":[{"category":"Dining Out","amount":"1.00"}]}']],
+            'history' => [['role' => 'tool', 'content' => '{"totals":[{"category":"Dining Out","amount":"1.00"}]}']]
         ])->assertUnprocessable();
     }
 
@@ -162,46 +155,6 @@ final class ChatTest extends TestCase
         self::assertSame(['THIRD', 'SECOND'], array_column($result['transactions'], 'description'), 'newest first');
     }
 
-    public function testToolMistakesComeBackAsAdviceNotErrors(): void
-    {
-        $user = $this->signIn();
-        $this->spend($user, 'Groceries', '10.00', '2026-05-02', 'WHOLEFDS MKT');
-
-        $this->model
-            ->willCall('sum_by_category', ['start' => 'last month', 'end' => '2026-05-31'])
-            ->willCall('sum_by_category', ['start' => '2026-05-01', 'end' => '2026-05-31', 'categories' => ['Restaurants']])
-            ->willSay('There is no Restaurants category.')
-        ;
-
-        $this->postJson(route('fork.chat.send'), ['message' => 'what about restaurants?'])->assertOk();
-
-        self::assertSame('"start" ("last month") is not a date as YYYY-MM-DD.', $this->model->toolResult(1)['error']);
-        self::assertStringContainsString('no such category: Restaurants', $this->model->toolResult(2)['error']);
-    }
-
-    public function testStreamsTheAnswerAsItArrives(): void
-    {
-        $user = $this->signIn();
-        $this->spend($user, 'Dining Out', '40.00', '2026-05-04', 'BLUE BOTTLE 0123');
-        $this->model
-            ->willCall('sum_by_category', ['start' => '2026-05-01', 'end' => '2026-05-31'])
-            ->willSay('You spent 40.00 EUR.')
-        ;
-
-        $response = $this->post(route('fork.chat.stream'), ['message' => 'how much on dining out in May 2026?'], ['Accept' => 'text/event-stream']);
-        $response->assertOk();
-        self::assertStringStartsWith('text/event-stream', (string) $response->headers->get('Content-Type'));
-        self::assertSame('no', $response->headers->get('X-Accel-Buffering'), 'nginx must not buffer the stream');
-
-        $events = $this->events($response->streamedContent());
-        self::assertSame(['thinking', 'tool', 'thinking', 'delta', 'delta', 'delta', 'delta', 'done'], array_column($events, 'event'), 'the tool runs between the two model rounds');
-        self::assertSame('sum_by_category', $events[1]['data']['name']);
-        self::assertSame('You spent 40.00 EUR.', implode('', array_column(array_filter($events, static fn(array $e): bool => 'delta' === $e['event']), 'text')));
-        self::assertSame('You spent 40.00 EUR.', $events[7]['data']['answer']);
-        self::assertFalse($events[7]['data']['hit_round_limit']);
-        self::assertSame([['name' => 'sum_by_category', 'arguments' => ['start' => '2026-05-01', 'end' => '2026-05-31']]], $events[7]['data']['tools']);
-    }
-
     public function testStreamReportsModelFailureAsAnEvent(): void
     {
         $this->signIn();
@@ -214,6 +167,33 @@ final class ChatTest extends TestCase
         self::assertStringContainsString('fake failure', $events[0]['data']['message']);
     }
 
+    public function testStreamsTheAnswerAsItArrives(): void
+    {
+        $user = $this->signIn();
+        $this->spend($user, 'Dining Out', '40.00', '2026-05-04', 'BLUE BOTTLE 0123');
+        $this->model->willCall('sum_by_category', ['start' => '2026-05-01', 'end' => '2026-05-31'])->willSay('You spent 40.00 EUR.');
+
+        $response = $this->post(route('fork.chat.stream'), ['message' => 'how much on dining out in May 2026?'], ['Accept' => 'text/event-stream']);
+        $response->assertOk();
+        self::assertStringStartsWith('text/event-stream', (string) $response->headers->get('Content-Type'));
+        self::assertSame('no', $response->headers->get('X-Accel-Buffering'), 'nginx must not buffer the stream');
+
+        $events = $this->events($response->streamedContent());
+        self::assertSame(
+            ['thinking', 'tool', 'thinking', 'delta', 'delta', 'delta', 'delta', 'done'],
+            array_column($events, 'event'),
+            'the tool runs between the two model rounds'
+        );
+        self::assertSame('sum_by_category', $events[1]['data']['name']);
+        self::assertSame('You spent 40.00 EUR.', implode('', array_column(
+            array_filter($events, static fn(array $e): bool => 'delta' === $e['event']),
+            'text'
+        )));
+        self::assertSame('You spent 40.00 EUR.', $events[7]['data']['answer']);
+        self::assertFalse($events[7]['data']['hit_round_limit']);
+        self::assertSame([['name' => 'sum_by_category', 'arguments' => ['start' => '2026-05-01', 'end' => '2026-05-31']]], $events[7]['data']['tools']);
+    }
+
     public function testStreamValidatesBeforeItStreams(): void
     {
         $this->signIn();
@@ -222,6 +202,21 @@ final class ChatTest extends TestCase
         $this->postJson(route('fork.chat.stream'), ['message' => ''])->assertUnprocessable();
         config(['fork.chat' => false]);
         $this->postJson(route('fork.chat.stream'), ['message' => 'hello'])->assertNotFound();
+    }
+
+    public function testToolMistakesComeBackAsAdviceNotErrors(): void
+    {
+        $user = $this->signIn();
+        $this->spend($user, 'Groceries', '10.00', '2026-05-02', 'WHOLEFDS MKT');
+
+        $this->model->willCall('sum_by_category', ['start' => 'last month', 'end' => '2026-05-31'])
+            ->willCall('sum_by_category', ['start' => '2026-05-01', 'end' => '2026-05-31', 'categories' => ['Restaurants']])
+            ->willSay('There is no Restaurants category.');
+
+        $this->postJson(route('fork.chat.send'), ['message' => 'what about restaurants?'])->assertOk();
+
+        self::assertSame('"start" ("last month") is not a date as YYYY-MM-DD.', $this->model->toolResult(1)['error']);
+        self::assertStringContainsString('no such category: Restaurants', $this->model->toolResult(2)['error']);
     }
 
     public function testWidgetIsOnThePageOnlyWhenTheFlagIsOn(): void
@@ -292,7 +287,7 @@ final class ChatTest extends TestCase
             'amount'        => $amount,
             'date'          => Carbon::parse(sprintf('%s 12:00:00', $date), 'UTC'),
             'description'   => $description,
-            'currency_code' => 'EUR',
+            'currency_code' => 'EUR'
         ]);
     }
 }

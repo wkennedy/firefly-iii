@@ -52,10 +52,10 @@ final class UnbudgetedSpendingTool implements ChatTool
                 'type'       => 'object',
                 'properties' => [
                     'start' => ['type' => 'string', 'description' => 'First day of the period, YYYY-MM-DD.'],
-                    'end'   => ['type' => 'string', 'description' => 'Last day of the period, YYYY-MM-DD (inclusive).'],
+                    'end'   => ['type' => 'string', 'description' => 'Last day of the period, YYYY-MM-DD (inclusive).']
                 ],
-                'required'   => ['start', 'end'],
-            ],
+                'required'   => ['start', 'end']
+            ]
         ];
     }
 
@@ -71,26 +71,25 @@ final class UnbudgetedSpendingTool implements ChatTool
         [$start, $end] = $this->range($arguments);
 
         /** @var GroupCollectorInterface $collector */
-        $collector     = app(GroupCollectorInterface::class);
-        $journals      = $collector
+        $collector = app(GroupCollectorInterface::class);
+        $journals  = $collector
             ->setUser($user)
             ->setRange($start, $end)
             ->setTypes([TransactionTypeEnum::WITHDRAWAL->value])
             ->withoutBudget()
             ->withCategoryInformation()
-            ->getExtractedJournals()
-        ;
+            ->getExtractedJournals();
 
-        $rows          = [];
+        $rows = [];
         foreach ($journals as $journal) {
-            $category         = '' === (string) ($journal['category_name'] ?? '') ? '(no category)' : (string) $journal['category_name'];
-            $currency         = (string) $journal['currency_code'];
-            $key              = $category . '|' . $currency;
-            $rows[$key] ??= ['category' => $category, 'currency' => $currency, 'amount' => '0', 'transactions' => 0];
+            $category             = '' === (string) ($journal['category_name'] ?? '') ? '(no category)' : (string) $journal['category_name'];
+            $currency             = (string) $journal['currency_code'];
+            $key                  = $category . '|' . $currency;
+            $rows[$key]           ??= ['category' => $category, 'currency' => $currency, 'amount' => '0', 'transactions' => 0];
             $rows[$key]['amount'] = bcadd($rows[$key]['amount'], Steam::positive((string) $journal['amount']), 12);
             ++$rows[$key]['transactions'];
         }
-        $rows          = array_values($rows);
+        $rows = array_values($rows);
         usort($rows, static fn(array $a, array $b): int => bccomp($b['amount'], $a['amount'], 12));
 
         return [
@@ -100,8 +99,8 @@ final class UnbudgetedSpendingTool implements ChatTool
                 'category'     => $row['category'],
                 'currency'     => $row['currency'],
                 'amount'       => $this->money($row['amount']),
-                'transactions' => $row['transactions'],
-            ], $rows),
+                'transactions' => $row['transactions']
+            ], $rows)
         ];
     }
 }

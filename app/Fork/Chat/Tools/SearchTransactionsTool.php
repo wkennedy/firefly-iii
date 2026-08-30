@@ -60,19 +60,19 @@ final class SearchTransactionsTool implements ChatTool
                     'type'       => [
                         'type'        => 'string',
                         'enum'        => ['withdrawal', 'deposit', 'transfer', 'all'],
-                        'description' => 'Defaults to withdrawal (money spent).',
+                        'description' => 'Defaults to withdrawal (money spent).'
                     ],
                     'min_amount' => ['type' => 'string', 'description' => 'Optional: only transactions of at least this amount (positive number).'],
                     'max_amount' => ['type' => 'string', 'description' => 'Optional: only transactions of at most this amount (positive number).'],
                     'order_by'   => [
                         'type'        => 'string',
                         'enum'        => ['date_desc', 'date_asc', 'amount_desc', 'amount_asc'],
-                        'description' => 'Sort order. Use amount_desc with limit 1 to find the single biggest transaction.',
+                        'description' => 'Sort order. Use amount_desc with limit 1 to find the single biggest transaction.'
                     ],
-                    'limit'      => ['type' => 'integer', 'description' => 'How many rows to return. Defaults to the maximum.'],
+                    'limit'      => ['type' => 'integer', 'description' => 'How many rows to return. Defaults to the maximum.']
                 ],
-                'required'   => ['start', 'end'],
-            ],
+                'required'   => ['start', 'end']
+            ]
         ];
     }
 
@@ -86,25 +86,24 @@ final class SearchTransactionsTool implements ChatTool
     public function run(User $user, array $arguments): array
     {
         [$start, $end] = $this->range($arguments);
-        $maximum       = max(1, (int) config('fork.chat_max_rows'));
-        $limit         = (int) ($arguments['limit'] ?? $maximum);
-        $limit         = min($maximum, max(1, $limit));
-        $categories    = $this->categories($user, $arguments);
+        $maximum    = max(1, (int) config('fork.chat_max_rows'));
+        $limit      = (int) ($arguments['limit'] ?? $maximum);
+        $limit      = min($maximum, max(1, $limit));
+        $categories = $this->categories($user, $arguments);
 
         /** @var GroupCollectorInterface $collector */
-        $collector     = app(GroupCollectorInterface::class);
+        $collector = app(GroupCollectorInterface::class);
         $collector
             ->setUser($user)
             ->setRange($start, $end)
             ->setTypes($this->types($arguments))
             ->withAccountInformation()
             ->withCategoryInformation()
-            ->withBudgetInformation()
-        ;
+            ->withBudgetInformation();
         if ($categories instanceof Collection) {
             $collector->setCategories($categories);
         }
-        $words         = $this->words($arguments);
+        $words = $this->words($arguments);
         if ([] !== $words) {
             $collector->setSearchWords($words);
         }
@@ -113,38 +112,20 @@ final class SearchTransactionsTool implements ChatTool
         // Sorting and slicing happen here rather than through setSorting()/setLimit(): the
         // collector skips its own slice as soon as sort instructions are present, which would
         // hand back the whole range. The date range is required, so the query itself is bounded.
-        $journals      = $collector->getExtractedJournals();
+        $journals = $collector->getExtractedJournals();
         usort($journals, $this->order((string) ($arguments['order_by'] ?? 'date_desc')));
-        $matched       = count($journals);
-        $rows          = array_map($this->row(...), array_slice($journals, 0, $limit));
+        $matched = count($journals);
+        $rows    = array_map($this->row(...), array_slice($journals, 0, $limit));
 
         return [
-            'start'      => $start->format('Y-m-d'),
-            'end'        => $end->format('Y-m-d'),
-            'order_by'   => (string) ($arguments['order_by'] ?? 'date_desc'),
-            'matched'    => $matched,
-            'showing'    => count($rows),
-            'truncated'  => $matched > count($rows),
-            'transactions' => $rows,
+            'start'        => $start->format('Y-m-d'),
+            'end'          => $end->format('Y-m-d'),
+            'order_by'     => (string) ($arguments['order_by'] ?? 'date_desc'),
+            'matched'      => $matched,
+            'showing'      => count($rows),
+            'truncated'    => $matched > count($rows),
+            'transactions' => $rows
         ];
-    }
-
-    /**
-     * The comparator for one of the four sort orders. Amounts are compared as decimal strings, so
-     * the "biggest transaction" question does not go through a float.
-     *
-     * @return callable(array<string, mixed>, array<string, mixed>): int
-     */
-    private function order(string $order): callable
-    {
-        $amount = static fn(array $journal): string => Steam::positive((string) $journal['amount']);
-
-        return match ($order) {
-            'date_asc'    => static fn(array $a, array $b): int => $a['date'] <=> $b['date'],
-            'amount_desc' => static fn(array $a, array $b): int => bccomp($amount($b), $amount($a), 12),
-            'amount_asc'  => static fn(array $a, array $b): int => bccomp($amount($a), $amount($b), 12),
-            default       => static fn(array $a, array $b): int => $b['date'] <=> $a['date'],
-        };
     }
 
     /**
@@ -162,6 +143,24 @@ final class SearchTransactionsTool implements ChatTool
             }
             $collector->{$method}((string) $value);
         }
+    }
+
+    /**
+     * The comparator for one of the four sort orders. Amounts are compared as decimal strings, so
+     * the "biggest transaction" question does not go through a float.
+     *
+     * @return callable(array<string, mixed>, array<string, mixed>): int
+     */
+    private function order(string $order): callable
+    {
+        $amount = static fn(array $journal): string => Steam::positive((string) $journal['amount']);
+
+        return match ($order) {
+            'date_asc'    => static fn(array $a, array $b): int => $a['date'] <=> $b['date'],
+            'amount_desc' => static fn(array $a, array $b): int => bccomp($amount($b), $amount($a), 12),
+            'amount_asc'  => static fn(array $a, array $b): int => bccomp($amount($a), $amount($b), 12),
+            default       => static fn(array $a, array $b): int => $b['date'] <=> $a['date']
+        };
     }
 
     /**
@@ -183,7 +182,7 @@ final class SearchTransactionsTool implements ChatTool
             'category'    => $journal['category_name'] ?? null,
             'budget'      => $journal['budget_name'] ?? null,
             'from'        => $journal['source_account_name'] ?? null,
-            'to'          => $journal['destination_account_name'] ?? null,
+            'to'          => $journal['destination_account_name'] ?? null
         ];
     }
 
@@ -198,7 +197,7 @@ final class SearchTransactionsTool implements ChatTool
             'deposit'  => [TransactionTypeEnum::DEPOSIT->value],
             'transfer' => [TransactionTypeEnum::TRANSFER->value],
             'all'      => [TransactionTypeEnum::WITHDRAWAL->value, TransactionTypeEnum::DEPOSIT->value, TransactionTypeEnum::TRANSFER->value],
-            default    => [TransactionTypeEnum::WITHDRAWAL->value],
+            default    => [TransactionTypeEnum::WITHDRAWAL->value]
         };
     }
 

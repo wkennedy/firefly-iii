@@ -41,7 +41,7 @@ final class ListCategoriesTool implements ChatTool
         return [
             'name'        => $this->name(),
             'description' => 'List the names of the categories that exist in this ledger. Call this first whenever a question mentions a category, so you use names that really exist.',
-            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []],
+            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
         ];
     }
 
@@ -57,7 +57,11 @@ final class ListCategoriesTool implements ChatTool
         /** @var CategoryRepositoryInterface $repository */
         $repository = app(CategoryRepositoryInterface::class);
         $repository->setUser($user);
-        $names      = $repository->getCategories()->map(static fn(Category $category): string => $category->name)->values()->all();
+        $names = $repository
+            ->getCategories()
+            ->map(static fn(Category $category): string => $category->name)
+            ->values()
+            ->all();
         sort($names);
 
         return ['categories' => $names, 'count' => count($names)];

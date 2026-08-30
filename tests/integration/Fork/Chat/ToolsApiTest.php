@@ -57,13 +57,12 @@ final class ToolsApiTest extends TestCase
         $this->spend($other, 'Groceries', '999.00', '2026-05-02', 'THEIRS');
         $this->spend($this->user, 'Groceries', '25.00', '2026-05-03', 'MINE');
 
-        $data  = $this
+        $data = $this
             ->postJson(route('api.v1.fork.chat.tools.execute', ['tool' => 'search_transactions']), [
-                'arguments' => ['start' => '2026-05-01', 'end' => '2026-05-31'],
+                'arguments' => ['start' => '2026-05-01', 'end' => '2026-05-31']
             ])
             ->assertOk()
-            ->json('data')
-        ;
+            ->json('data');
         self::assertSame(1, $data['matched']);
         self::assertSame('MINE', $data['transactions'][0]['description']);
     }
@@ -74,12 +73,11 @@ final class ToolsApiTest extends TestCase
 
         $this
             ->postJson(route('api.v1.fork.chat.tools.execute', ['tool' => 'sum_by_category']), [
-                'arguments' => ['start' => '2026-05-01', 'end' => '2026-05-31'],
+                'arguments' => ['start' => '2026-05-01', 'end' => '2026-05-31']
             ])
             ->assertOk()
             ->assertJsonPath('data.totals.0.category', 'Groceries')
-            ->assertJsonPath('data.totals.0.amount', '112.44')
-        ;
+            ->assertJsonPath('data.totals.0.amount', '112.44');
     }
 
     public function testItIsInvisibleWhenTheFlagIsOff(): void
@@ -112,11 +110,10 @@ final class ToolsApiTest extends TestCase
         // reader hunting for a routing problem.
         $this
             ->postJson(route('api.v1.fork.chat.tools.execute', ['tool' => 'propose_category_change']), [
-                'arguments' => ['transaction_id' => 1, 'category' => 'Groceries'],
+                'arguments' => ['transaction_id' => 1, 'category' => 'Groceries']
             ])
             ->assertNotFound()
-            ->assertJsonPath('message', 'There is no read-only tool called "propose_category_change". This endpoint never exposes tools that can change data.')
-        ;
+            ->assertJsonPath('message', 'There is no read-only tool called "propose_category_change". This endpoint never exposes tools that can change data.');
     }
 
     public function testItWantsAToken(): void
@@ -130,7 +127,7 @@ final class ToolsApiTest extends TestCase
     {
         parent::setUp();
         $this->setUpForkTestSupport();
-        config(['fork.chat_tools_api' => true, 'fork.chat_writes' => false, 'fork.chat_max_rows' => 50, 'fork.chat_max_result_bytes' => 12000]);
+        config(['fork.chat_tools_api' => true, 'fork.chat_writes' => false, 'fork.chat_max_rows' => 50, 'fork.chat_max_result_bytes' => 12_000]);
         $this->user = $this->createAuthenticatedUser();
         $this->actingAs($this->user);
     }
@@ -142,7 +139,7 @@ final class ToolsApiTest extends TestCase
             'amount'        => $amount,
             'date'          => Carbon::parse(sprintf('%s 12:00:00', $date), 'UTC'),
             'description'   => $description,
-            'currency_code' => 'EUR',
+            'currency_code' => 'EUR'
         ]);
     }
 }

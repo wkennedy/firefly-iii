@@ -56,7 +56,7 @@ final class ToolsTest extends TestCase
         $this->createDeposit($this->user, [
             'amount'        => '2500.00',
             'date'          => Carbon::parse('2026-05-01 12:00:00', 'UTC'),
-            'currency_code' => 'EUR',
+            'currency_code' => 'EUR'
         ]);
 
         $result   = $this->tool('account_balances');
@@ -67,18 +67,14 @@ final class ToolsTest extends TestCase
 
         // The claim this tool makes is that it cannot disagree with the rest of Firefly, so the
         // assertion is against Firefly's own API rather than a number typed into this test.
-        $api      = $this->getJson('/api/v1/accounts?type=asset')->assertOk()->json('data');
+        $api = $this->getJson('/api/v1/accounts?type=asset')->assertOk()->json('data');
         self::assertNotEmpty($api);
         foreach ($api as $account) {
             $name = $account['attributes']['name'];
             if (!array_key_exists($name, $balances)) {
                 continue;
             }
-            self::assertSame(
-                $account['attributes']['current_balance'],
-                $balances[$name],
-                sprintf('chat and /api/v1/accounts disagree about "%s"', $name)
-            );
+            self::assertSame($account['attributes']['current_balance'], $balances[$name], sprintf('chat and /api/v1/accounts disagree about "%s"', $name));
         }
         self::assertSame('2387.56', $balances['Checking'], '2500.00 in, 112.44 out');
     }
@@ -86,9 +82,9 @@ final class ToolsTest extends TestCase
     public function testBudgetStatusReportsSpentLimitAndWhatIsLeft(): void
     {
         $groceries = $this->budget('Groceries budget', limit: '500.00');
-        $this->budget('Fuel budget', auto: '150.00');            // recurring amount, no limit this period
+        $this->budget('Fuel budget', auto: '150.00'); // recurring amount, no limit this period
         $this->spend('Groceries', '200.00', '2026-05-06', 'WHOLEFDS', $groceries);
-        $this->spend('Dining Out', '75.00', '2026-05-07', 'TAQUERIA');  // no budget at all
+        $this->spend('Dining Out', '75.00', '2026-05-07', 'TAQUERIA'); // no budget at all
 
         $result = $this->tool('budget_status', ['start' => '2026-05-01', 'end' => '2026-05-31']);
         $rows   = [];
@@ -129,7 +125,7 @@ final class ToolsTest extends TestCase
         self::assertContains('Checking', array_column($accounts['assets'], 'name'));
         self::assertSame(['Old loan'], array_column($accounts['liabilities'], 'name'));
 
-        $budgets  = $this->tool('list_budgets')['budgets'];
+        $budgets = $this->tool('list_budgets')['budgets'];
         self::assertSame('Groceries budget', $budgets[0]['name']);
         self::assertSame('400.00', $budgets[0]['recurring_amount']);
     }
@@ -185,29 +181,33 @@ final class ToolsTest extends TestCase
         $this->createWithdrawal($this->user, ['amount' => '13.00', 'date' => Carbon::parse('2026-05-09 12:00:00', 'UTC'), 'currency_code' => 'EUR']);
 
         $rows = $this->tool('unbudgeted_spending', ['start' => '2026-05-01', 'end' => '2026-05-31'])['categories'];
-        self::assertSame([
-            ['category' => 'Dining Out', 'currency' => 'EUR', 'amount' => '100.00', 'transactions' => 2],
-            ['category' => '(no category)', 'currency' => 'EUR', 'amount' => '13.00', 'transactions' => 1],
-        ], $rows, 'budgeted groceries are not here; biggest first');
+        self::assertSame(
+            [
+                ['category' => 'Dining Out', 'currency' => 'EUR', 'amount' => '100.00', 'transactions' => 2],
+                ['category' => '(no category)', 'currency' => 'EUR', 'amount' => '13.00', 'transactions' => 1]
+            ],
+            $rows,
+            'budgeted groceries are not here; biggest first'
+        );
     }
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->setUpForkTestSupport();
-        config(['fork.chat' => true, 'fork.chat_max_rows' => 50, 'fork.chat_max_result_bytes' => 12000]);
+        config(['fork.chat' => true, 'fork.chat_max_rows' => 50, 'fork.chat_max_result_bytes' => 12_000]);
         $this->user = $this->createAuthenticatedUser();
         $this->actingAs($this->user);
     }
 
-    private function budget(string $name, ?string $limit = null, ?string $auto = null): Budget
+    private function budget(string $name, null|string $limit = null, null|string $auto = null): Budget
     {
-        $budget   = Budget::create([
+        $budget = Budget::create([
             'user_id'       => $this->user->id,
             'user_group_id' => $this->user->user_group_id,
             'name'          => $name,
             'active'        => true,
-            'order'         => (int) Budget::query()->where('user_id', $this->user->id)->max('order') + 1,
+            'order'         => (int) Budget::query()->where('user_id', $this->user->id)->max('order') + 1
         ]);
         $currency = TransactionCurrency::query()->where('code', 'EUR')->firstOrFail();
         if (null !== $limit) {
@@ -216,7 +216,7 @@ final class ToolsTest extends TestCase
                 'transaction_currency_id' => $currency->id,
                 'start_date'              => '2026-05-01',
                 'end_date'                => '2026-05-31',
-                'amount'                  => $limit,
+                'amount'                  => $limit
             ]);
         }
         if (null !== $auto) {
@@ -233,6 +233,21 @@ final class ToolsTest extends TestCase
         return $budget;
     }
 
+    private function spend(string $category, string $amount, string $date, string $description, null|Budget $budget = null): void
+    {
+        $row = [
+            'category_name' => $category,
+            'amount'        => $amount,
+            'date'          => Carbon::parse(sprintf('%s 12:00:00', $date), 'UTC'),
+            'description'   => $description,
+            'currency_code' => 'EUR'
+        ];
+        if ($budget instanceof Budget) {
+            $row['budget_id'] = $budget->id;
+        }
+        $this->createWithdrawal($this->user, $row);
+    }
+
     /**
      * @param array<string, mixed> $arguments
      *
@@ -241,20 +256,5 @@ final class ToolsTest extends TestCase
     private function tool(string $tool, array $arguments = []): array
     {
         return app(ToolRegistry::class)->execute($this->user, $tool, (string) json_encode($arguments));
-    }
-
-    private function spend(string $category, string $amount, string $date, string $description, ?Budget $budget = null): void
-    {
-        $row = [
-            'category_name' => $category,
-            'amount'        => $amount,
-            'date'          => Carbon::parse(sprintf('%s 12:00:00', $date), 'UTC'),
-            'description'   => $description,
-            'currency_code' => 'EUR',
-        ];
-        if ($budget instanceof Budget) {
-            $row['budget_id'] = $budget->id;
-        }
-        $this->createWithdrawal($this->user, $row);
     }
 }

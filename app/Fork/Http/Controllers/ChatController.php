@@ -48,27 +48,6 @@ use Illuminate\Http\Request;
  */
 final class ChatController extends Controller
 {
-    public function send(Request $request, ChatAgent $agent): JsonResponse
-    {
-        $data = $this->validated($request);
-
-        try {
-            $answer = $agent->answer($this->user(), $data['message'], $data['history'] ?? [], $data['context'] ?? []);
-        } catch (ChatException $e) {
-            // The model is down or unreachable: a real 502, and worth saying so plainly rather than
-            // dressing it up as an answer.
-            return response()->json(['message' => $e->getMessage()], 502);
-        }
-
-        return response()->json(['data' => [
-            'answer'          => $answer->answer,
-            'tools'           => $answer->toolCalls,
-            'rounds'          => $answer->rounds,
-            'hit_round_limit' => $answer->hitRoundLimit,
-            'proposals'       => app(ProposalStore::class)->fresh(),
-        ]]);
-    }
-
     /**
      * Apply a change the person confirmed. The only route in the chat that writes, and it takes a
      * token rather than a description of what to do: nothing here can be steered by the model or by
@@ -86,7 +65,7 @@ final class ChatController extends Controller
             return response()->json(['message' => 'That confirmation has expired or was already used. Ask again and confirm the new card.'], 410);
         }
 
-        $journal  = TransactionJournal::query()->where('id', $proposal['journal_id'])->where('user_id', $user->id)->first();
+        $journal = TransactionJournal::query()->where('id', $proposal['journal_id'])->where('user_id', $user->id)->first();
         if (!$journal instanceof TransactionJournal) {
             return response()->json(['message' => 'That transaction no longer exists. Nothing was changed.'], 404);
         }
@@ -94,18 +73,18 @@ final class ChatController extends Controller
         // The proposal describes a world that may have moved on — the categorizer, a rule or another
         // window may have set a category since the card was drawn. Confirming a card that says
         // "Shopping → Household" must not silently overwrite something else.
-        $current  = $journal->categories()->first()?->name;
+        $current = $journal->categories()->first()?->name;
         if ($current !== $proposal['from_category']) {
             return response()->json([
                 'message' => sprintf(
                     'This transaction is now "%s", not "%s" as it was when the change was suggested. Nothing was changed.',
                     $current ?? 'uncategorised',
                     $proposal['from_category'] ?? 'uncategorised'
-                ),
+                )
             ], 409);
         }
 
-        $result   = $changer->apply($user, $journal, (string) $proposal['to_category']);
+        $result = $changer->apply($user, $journal, (string) $proposal['to_category']);
 
         return response()->json(['data' => [
             'applied'   => true,
@@ -113,7 +92,28 @@ final class ChatController extends Controller
             'overruled' => $result['overruled'],
             'message'   => $result['overruled']
                 ? sprintf('Set to "%s", but a rule then changed it to "%s".', $proposal['to_category'], $result['category'] ?? 'no category')
-                : sprintf('Changed to "%s".', $result['category'] ?? 'no category'),
+                : sprintf('Changed to "%s".', $result['category'] ?? 'no category')
+        ]]);
+    }
+
+    public function send(Request $request, ChatAgent $agent): JsonResponse
+    {
+        $data = $this->validated($request);
+
+        try {
+            $answer = $agent->answer($this->user(), $data['message'], $data['history'] ?? [], $data['context'] ?? []);
+        } catch (ChatException $e) {
+            // The model is down or unreachable: a real 502, and worth saying so plainly rather than
+            // dressing it up as an answer.
+            return response()->json(['message' => $e->getMessage()], 502);
+        }
+
+        return response()->json(['data' => [
+            'answer'          => $answer->answer,
+            'tools'           => $answer->toolCalls,
+            'rounds'          => $answer->rounds,
+            'hit_round_limit' => $answer->hitRoundLimit,
+            'proposals'       => app(ProposalStore::class)->fresh()
         ]]);
     }
 
@@ -128,37 +128,39 @@ final class ChatController extends Controller
         $data = $this->validated($request);
         $user = $this->user();
 
-        $stream = new StreamedEventResponse(function () use ($agent, $user, $data): void {
-            $emit = function (string $event, array $payload): void {
-                echo sprintf("event: %s\ndata: %s\n\n", $event, json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-                $this->push();
-            };
+        return new StreamedEventResponse(
+            function () use ($agent, $user, $data): void {
+                $emit = function (string $event, array $payload): void {
+                    echo sprintf("event: %s\ndata: %s\n\n", $event, json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+                    $this->push();
+                };
 
-            try {
-                $answer = $agent->stream($user, $data['message'], $data['history'] ?? [], $data['context'] ?? [], $emit);
-                $emit('done', [
-                    'answer'          => $answer->answer,
-                    'tools'           => $answer->toolCalls,
-                    'rounds'          => $answer->rounds,
-                    'hit_round_limit' => $answer->hitRoundLimit,
-                    // Confirmation cards ride on the finished turn, not on their own event: they are
-                    // an action to take, not narration to follow along with.
-                    'proposals'       => app(ProposalStore::class)->fresh(),
-                ]);
-            } catch (ChatException $e) {
-                $emit('error', ['message' => $e->getMessage()]);
-            }
-        }, 200, [
-            'Content-Type'      => 'text/event-stream',
-            'Cache-Control'     => 'no-cache',
-            'Connection'        => 'keep-alive',
-            // nginx buffers a PHP-FPM response by default, which would hold the whole answer back
-            // until it ends and make streaming pointless. This header turns that off per response,
-            // so no nginx configuration has to ship with the image.
-            'X-Accel-Buffering' => 'no',
-        ]);
-
-        return $stream;
+                try {
+                    $answer = $agent->stream($user, $data['message'], $data['history'] ?? [], $data['context'] ?? [], $emit);
+                    $emit('done', [
+                        'answer'          => $answer->answer,
+                        'tools'           => $answer->toolCalls,
+                        'rounds'          => $answer->rounds,
+                        'hit_round_limit' => $answer->hitRoundLimit,
+                        // Confirmation cards ride on the finished turn, not on their own event: they are
+                        // an action to take, not narration to follow along with.
+                        'proposals' => app(ProposalStore::class)->fresh()
+                    ]);
+                } catch (ChatException $e) {
+                    $emit('error', ['message' => $e->getMessage()]);
+                }
+            },
+            200,
+            [
+                'Content-Type'  => 'text/event-stream',
+                'Cache-Control' => 'no-cache',
+                'Connection'    => 'keep-alive',
+                // nginx buffers a PHP-FPM response by default, which would hold the whole answer back
+                // until it ends and make streaming pointless. This header turns that off per response,
+                // so no nginx configuration has to ship with the image.
+                'X-Accel-Buffering' => 'no'
+            ]
+        );
     }
 
     /**
@@ -177,6 +179,16 @@ final class ChatController extends Controller
         flush();
     }
 
+    private function user(): User
+    {
+        $user = auth()->user();
+        if (!$user instanceof User) {
+            throw new AuthenticationException();
+        }
+
+        return $user;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -193,17 +205,7 @@ final class ChatController extends Controller
             'history.*.content' => ['required', 'string', 'max:8000'],
             'context'           => ['nullable', 'array'],
             'context.start'     => ['nullable', 'date_format:Y-m-d'],
-            'context.end'       => ['nullable', 'date_format:Y-m-d'],
+            'context.end'       => ['nullable', 'date_format:Y-m-d']
         ]);
-    }
-
-    private function user(): User
-    {
-        $user = auth()->user();
-        if (!$user instanceof User) {
-            throw new AuthenticationException();
-        }
-
-        return $user;
     }
 }

@@ -46,9 +46,9 @@ trait ResolvesArguments
      *
      * @param array<string, mixed> $arguments
      */
-    protected function categories(User $user, array $arguments, string $key = 'categories'): ?Collection
+    protected function categories(User $user, array $arguments, string $key = 'categories'): null|Collection
     {
-        $names      = $arguments[$key] ?? null;
+        $names = $arguments[$key] ?? null;
         if (null === $names || [] === $names || '' === $names) {
             return null;
         }
@@ -62,8 +62,8 @@ trait ResolvesArguments
         /** @var CategoryRepositoryInterface $repository */
         $repository = app(CategoryRepositoryInterface::class);
         $repository->setUser($user);
-        $found      = new Collection();
-        $unknown    = [];
+        $found   = new Collection();
+        $unknown = [];
         foreach ($names as $name) {
             $category = $repository->findByName((string) $name);
             if ($category instanceof Category) {

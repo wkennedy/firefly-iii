@@ -52,33 +52,9 @@ final class ProposalStore
     /** @var list<array<string, mixed>> proposals created during THIS request */
     private array $fresh = [];
 
-    public function __construct(private readonly Repository $cache) {}
-
-    /**
-     * Store a proposal and return the part the browser needs. The token is deliberately not part of
-     * what the tool hands back to the model.
-     *
-     * @param array<string, mixed> $card  what the confirmation card shows
-     *
-     * @return array<string, mixed>
-     */
-    public function put(array $card, int $userId, int $journalId, ?string $fromCategory, string $toCategory): array
-    {
-        $token         = bin2hex(random_bytes(16));
-        $proposal      = [
-            'token'         => $token,
-            'user_id'       => $userId,
-            'journal_id'    => $journalId,
-            'from_category' => $fromCategory,
-            'to_category'   => $toCategory,
-            'expires_at'    => Carbon::now()->getTimestamp() + self::TTL_SECONDS,
-            'card'          => $card + ['token' => $token],
-        ];
-        $this->cache->put(self::PREFIX . $token, $proposal, self::TTL_SECONDS);
-        $this->fresh[] = $proposal['card'];
-
-        return $proposal['card'];
-    }
+    public function __construct(
+        private readonly Repository $cache
+    ) {}
 
     /**
      * The cards created during this request, for the finished turn to carry to the browser.
@@ -91,13 +67,39 @@ final class ProposalStore
     }
 
     /**
+     * Store a proposal and return the part the browser needs. The token is deliberately not part of
+     * what the tool hands back to the model.
+     *
+     * @param array<string, mixed> $card  what the confirmation card shows
+     *
+     * @return array<string, mixed>
+     */
+    public function put(array $card, int $userId, int $journalId, null|string $fromCategory, string $toCategory): array
+    {
+        $token    = bin2hex(random_bytes(16));
+        $proposal = [
+            'token'         => $token,
+            'user_id'       => $userId,
+            'journal_id'    => $journalId,
+            'from_category' => $fromCategory,
+            'to_category'   => $toCategory,
+            'expires_at'    => Carbon::now()->getTimestamp() + self::TTL_SECONDS,
+            'card'          => $card + ['token' => $token]
+        ];
+        $this->cache->put(self::PREFIX . $token, $proposal, self::TTL_SECONDS);
+        $this->fresh[] = $proposal['card'];
+
+        return $proposal['card'];
+    }
+
+    /**
      * Take a proposal out of the store for this user. Single use: pulled, so a replayed
      * confirmation is simply unknown rather than a second write. A proposal belonging to someone
      * else, or one that has aged out, comes back as nothing.
      *
      * @return null|array<string, mixed>
      */
-    public function take(string $token, int $userId): ?array
+    public function take(#[\SensitiveParameter] string $token, int $userId): null|array
     {
         $proposal = $this->cache->pull(self::PREFIX . $token);
         if (!is_array($proposal)) {

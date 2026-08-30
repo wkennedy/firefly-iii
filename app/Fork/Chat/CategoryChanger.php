@@ -45,7 +45,9 @@ use FireflyIII\User;
  */
 final class CategoryChanger
 {
-    public function __construct(private readonly TransactionGroupRepositoryInterface $repository) {}
+    public function __construct(
+        private readonly TransactionGroupRepositoryInterface $repository
+    ) {}
 
     /**
      * @return array{category: null|string, overruled: bool}
@@ -56,13 +58,13 @@ final class CategoryChanger
         $group   = $journal->transactionGroup;
         $objects = TransactionGroupEventObjects::collectFromTransactionGroup($group);
         $group   = $this->repository->update($group, [
-            'transactions' => [['transaction_journal_id' => $journal->id, 'category_name' => $category]],
+            'transactions' => [['transaction_journal_id' => $journal->id, 'category_name' => $category]]
         ]);
         $objects->appendFromTransactionGroup($group);
 
-        $flags                    = new TransactionGroupEventFlags();
-        $flags->applyRules        = true;
-        $flags->fireWebhooks      = true;
+        $flags               = new TransactionGroupEventFlags();
+        $flags->applyRules   = true;
+        $flags->fireWebhooks = true;
         // A category cannot change an amount, so there is nothing to recalculate.
         $flags->recalculateCredit = false;
         event(new UpdatedSingleTransactionGroup($flags, $objects));
@@ -71,7 +73,7 @@ final class CategoryChanger
         // Rules run on update, and a rule is allowed to overrule what was just confirmed. Read back
         // what the ledger actually says rather than reporting the request as though it were the
         // outcome: this whole feature is worthless the moment an answer stops matching the data.
-        $actual                   = $journal->fresh()?->categories()->first()?->name;
+        $actual = $journal->fresh()?->categories()->first()?->name;
 
         return ['category' => $actual, 'overruled' => $actual !== $category];
     }

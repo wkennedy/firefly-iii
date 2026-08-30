@@ -51,7 +51,7 @@ final class CalculatorTest extends TestCase
             'negative result'         => ['411.88 - 1071.56', '-659.68'],
             'division'                => ['1071.56 / 4', '267.89'],
             'thousands separators'    => ['1,071.56 + 1,000', '2071.56'],
-            'nested'                  => ['((100 + 50) / 3) * 2', '100'],
+            'nested'                  => ['((100 + 50) / 3) * 2', '100']
         ];
     }
 
@@ -65,7 +65,7 @@ final class CalculatorTest extends TestCase
             'a bare word'        => ['groceries + 5', 'not something I can calculate'],
             'unbalanced bracket' => ['(2 + 3', 'without its'],
             'nothing at all'     => ['   ', 'nothing to calculate'],
-            'dangling operator'  => ['2 +', 'ends where a number should be'],
+            'dangling operator'  => ['2 +', 'ends where a number should be']
         ];
     }
 
@@ -73,7 +73,7 @@ final class CalculatorTest extends TestCase
     public function testEvaluates(string $expression, string $expected): void
     {
         // Trailing zeros are the calculator's own scale, not part of the answer.
-        $result = rtrim(rtrim((new Calculator())->evaluate($expression), '0'), '.');
+        $result = rtrim(rtrim(new Calculator()->evaluate($expression), '0'), '.');
         self::assertSame($expected, '' === $result ? '0' : $result);
     }
 
@@ -84,13 +84,13 @@ final class CalculatorTest extends TestCase
         // can act on rather than an error that ends the turn.
         $this->expectException(ToolException::class);
         $this->expectExceptionMessageMatches('/' . preg_quote($because, '/') . '/');
-        (new Calculator())->evaluate($expression);
+        new Calculator()->evaluate($expression);
     }
 
     public function testRefusesSomethingEnormous(): void
     {
         $this->expectException(ToolException::class);
         $this->expectExceptionMessageMatches('/too long/');
-        (new Calculator())->evaluate(implode(' + ', array_fill(0, 100, '1234567')));
+        new Calculator()->evaluate(implode(' + ', array_fill(0, 100, '1234567')));
     }
 }

@@ -43,7 +43,9 @@ final class LmStudioClient implements ChatCompletionClient
 {
     private const int MAX_ATTEMPTS = 3;
 
-    public function __construct(private readonly Client $client) {}
+    public function __construct(
+        private readonly Client $client
+    ) {}
 
     #[Override]
     public function complete(array $messages, array $tools): array
@@ -147,7 +149,7 @@ final class LmStudioClient implements ChatCompletionClient
             if (!is_array($fragment)) {
                 continue;
             }
-            $index                                = (int) ($fragment['index'] ?? $position);
+            $index         = (int) ($fragment['index'] ?? $position);
             $calls[$index] ??= ['id' => '', 'type' => 'function', 'function' => ['name' => '', 'arguments' => '']];
             if (is_string($fragment['id'] ?? null)) {
                 $calls[$index]['id'] = $fragment['id'];
@@ -192,7 +194,7 @@ final class LmStudioClient implements ChatCompletionClient
                 'json'    => $payload,
                 'stream'  => $stream,
                 'timeout' => (int) config('fork.chat_timeout'),
-                'headers' => ['Content-Type' => 'application/json', 'Accept' => $stream ? 'text/event-stream' : 'application/json'],
+                'headers' => ['Content-Type' => 'application/json', 'Accept' => $stream ? 'text/event-stream' : 'application/json']
             ]);
         } catch (ConnectException $e) {
             throw new ChatException(sprintf('cannot reach the model at %s (%s)', $url, $e->getMessage()));

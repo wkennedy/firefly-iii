@@ -56,11 +56,11 @@ final class SumByCategoryTool implements ChatTool
                     'categories' => [
                         'type'        => 'array',
                         'items'       => ['type' => 'string'],
-                        'description' => 'Optional: only these categories, by exact name. Omit for every category.',
-                    ],
+                        'description' => 'Optional: only these categories, by exact name. Omit for every category.'
+                    ]
                 ],
-                'required'   => ['start', 'end'],
-            ],
+                'required'   => ['start', 'end']
+            ]
         ];
     }
 
@@ -73,50 +73,50 @@ final class SumByCategoryTool implements ChatTool
     #[Override]
     public function run(User $user, array $arguments): array
     {
-        [$start, $end]  = $this->range($arguments);
-        $direction      = 'income' === ($arguments['direction'] ?? 'expenses') ? 'income' : 'expenses';
-        $categories     = $this->categories($user, $arguments);
+        [$start, $end] = $this->range($arguments);
+        $direction  = 'income' === ($arguments['direction'] ?? 'expenses') ? 'income' : 'expenses';
+        $categories = $this->categories($user, $arguments);
 
         /** @var OperationsRepositoryInterface $operations */
-        $operations     = app(OperationsRepositoryInterface::class);
+        $operations = app(OperationsRepositoryInterface::class);
         $operations->setUser($user);
-        $journals       = 'income' === $direction
+        $journals = 'income' === $direction
             ? $operations->collectIncome($start, $end, null, $categories)
             : $operations->collectExpenses($start, $end, null, $categories);
 
-        $totals         = [];
+        $totals = [];
         foreach ($journals as $journal) {
-            $name                        = (string) ($journal['category_name'] ?? '');
-            $currency                    = (string) $journal['currency_code'];
-            $key                         = $name . '|' . $currency;
+            $name         = (string) ($journal['category_name'] ?? '');
+            $currency     = (string) $journal['currency_code'];
+            $key          = $name . '|' . $currency;
             $totals[$key] ??= [
                 'category'      => $name,
                 'currency_code' => $currency,
                 'amount'        => '0',
                 'decimals'      => (int) $journal['currency_decimal_places'],
-                'transactions'  => 0,
+                'transactions'  => 0
             ];
-            $totals[$key]['amount']      = bcadd($totals[$key]['amount'], Steam::positive((string) $journal['amount']), 12);
+            $totals[$key]['amount'] = bcadd($totals[$key]['amount'], Steam::positive((string) $journal['amount']), 12);
             ++$totals[$key]['transactions'];
         }
 
         // Transactions with no category at all are invisible to the collector above, and leaving
         // them out turns "what did I spend in May" into a number that is quietly too low.
-        $uncategorised  = [];
+        $uncategorised = [];
         if (!$categories instanceof Collection) {
             /** @var NoCategoryRepositoryInterface $noCategory */
-            $noCategory    = app(NoCategoryRepositoryInterface::class);
+            $noCategory = app(NoCategoryRepositoryInterface::class);
             $noCategory->setUser($user);
-            $sums          = 'income' === $direction ? $noCategory->sumIncome($start, $end) : $noCategory->sumExpenses($start, $end);
+            $sums = 'income' === $direction ? $noCategory->sumIncome($start, $end) : $noCategory->sumExpenses($start, $end);
             foreach ($sums as $sum) {
                 $uncategorised[] = [
                     'currency_code' => (string) $sum['currency_code'],
-                    'amount'        => $this->money(Steam::positive((string) $sum['sum']), (int) $sum['currency_decimal_places']),
+                    'amount'        => $this->money(Steam::positive((string) $sum['sum']), (int) $sum['currency_decimal_places'])
                 ];
             }
         }
 
-        $rows           = array_values($totals);
+        $rows = array_values($totals);
         usort($rows, static fn(array $a, array $b): int => bccomp($b['amount'], $a['amount'], 12));
 
         return [
@@ -127,12 +127,12 @@ final class SumByCategoryTool implements ChatTool
                 'category'      => '' === $row['category'] ? '(no category)' : $row['category'],
                 'currency_code' => $row['currency_code'],
                 'amount'        => $this->money($row['amount'], $row['decimals']),
-                'transactions'  => $row['transactions'],
+                'transactions'  => $row['transactions']
             ], $rows),
             'uncategorised'      => $uncategorised,
             'uncategorised_note' => [] === $uncategorised
                 ? 'Nothing in this range is missing a category.'
-                : 'Amounts under "uncategorised" have no category at all and are NOT part of any total above.',
+                : 'Amounts under "uncategorised" have no category at all and are NOT part of any total above.'
         ];
     }
 }

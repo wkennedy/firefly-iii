@@ -54,7 +54,7 @@ final class ChatToolController extends Controller
         // for a routing problem that is not there.
         if (!in_array($tool, $registry->names(), true) || $registry->isWrite($tool)) {
             return response()->json([
-                'message' => sprintf('There is no read-only tool called "%s". This endpoint never exposes tools that can change data.', $tool),
+                'message' => sprintf('There is no read-only tool called "%s". This endpoint never exposes tools that can change data.', $tool)
             ], 404);
         }
         $data      = $request->validate(['arguments' => ['nullable', 'array']]);
@@ -66,10 +66,7 @@ final class ChatToolController extends Controller
     public function index(ToolRegistry $registry): JsonResponse
     {
         $this->guard($registry);
-        $tools = array_map(
-            static fn(array $definition): array => $definition['function'],
-            $registry->definitions(false)
-        );
+        $tools = array_map(static fn(array $definition): array => $definition['function'], $registry->definitions(false));
 
         return response()->json(['data' => $tools]);
     }

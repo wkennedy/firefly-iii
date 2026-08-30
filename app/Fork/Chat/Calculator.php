@@ -58,7 +58,7 @@ final class Calculator
         if ([] === $this->tokens) {
             throw new ToolException('there is nothing to calculate.');
         }
-        $value          = $this->expression();
+        $value = $this->expression();
         if ($this->position < count($this->tokens)) {
             throw new ToolException(sprintf('I could not read "%s" as arithmetic.', $expression));
         }
@@ -78,26 +78,26 @@ final class Calculator
         return $value;
     }
 
-    private function next(): ?string
+    private function next(): null|string
     {
-        $token = $this->peek();
+        $symbol = $this->peek();
         ++$this->position;
 
-        return $token;
+        return $symbol;
     }
 
-    private function peek(): ?string
+    private function peek(): null|string
     {
         return $this->tokens[$this->position] ?? null;
     }
 
     private function primary(): string
     {
-        $token = $this->next();
-        if (null === $token) {
+        $symbol = $this->next();
+        if (null === $symbol) {
             throw new ToolException('the expression ends where a number should be.');
         }
-        if ('(' === $token) {
+        if ('(' === $symbol) {
             $value = $this->expression();
             if (')' !== $this->next()) {
                 throw new ToolException('there is a "(" without its ")".');
@@ -105,11 +105,11 @@ final class Calculator
 
             return $value;
         }
-        if (1 !== preg_match('/^\d+(\.\d+)?$/', $token)) {
-            throw new ToolException(sprintf('"%s" is not a number.', $token));
+        if (1 !== preg_match('/^\d+(\.\d+)?$/', $symbol)) {
+            throw new ToolException(sprintf('"%s" is not a number.', $symbol));
         }
 
-        return $token;
+        return $symbol;
     }
 
     private function term(): string
@@ -126,7 +126,7 @@ final class Calculator
 
                 continue;
             }
-            $value    = bcmul($value, $right, self::SCALE);
+            $value = bcmul($value, $right, self::SCALE);
         }
 
         return $value;

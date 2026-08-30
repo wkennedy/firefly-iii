@@ -72,14 +72,42 @@ final class WritesTest extends TestCase
         self::assertNull(app(ProposalStore::class)->take($token, $this->user->id));
 
         $this->travelBack();
-        $this->applyToken($token)->assertStatus(410);
+        $this->applyToken($token)->assertGone();
         self::assertSame('Shopping', $this->categoryOf($journal), 'an expired confirmation writes nothing');
+    }
+
+    public function testAProposalMadeWhileStreamingSurvivesToTheConfirmation(): void
+    {
+        $journal = $this->journalFor('Shopping');
+        $this->model->willCall('propose_category_change', ['transaction_id' => $journal->id, 'category' => 'Household'])
+            ->willSay('Confirm the card and I will change it.');
+
+        // Regression: proposals used to live in the session, and StartSession has already written
+        // the session by the time a streamed response's callback runs — so the proposal vanished and
+        // every confirmation came back "expired". Nothing but a real click through the streaming
+        // endpoint showed it, hence this test.
+        $stream = $this->post(route('fork.chat.stream'), ['message' => 'that one is household'], ['Accept' => 'text/event-stream']);
+        $stream->assertOk();
+
+        $token = null;
+        foreach ($this->events($stream->streamedContent()) as $event) {
+            if ('done' === $event['event']) {
+                $token = $event['data']['proposals'][0]['token'] ?? null;
+            }
+        }
+        self::assertNotNull($token, 'the finished turn carries the confirmation card');
+
+        $this
+            ->applyToken((string) $token)
+            ->assertOk()
+            ->assertJsonPath('data.category', 'Household');
+        self::assertSame('Household', $this->categoryOf($journal));
     }
 
     public function testConfirmingAppliesTheChange(): void
     {
-        $journal  = $this->journalFor('Shopping');
-        $token    = $this->propose($journal->id, 'Household');
+        $journal = $this->journalFor('Shopping');
+        $token   = $this->propose($journal->id, 'Household');
 
         $response = $this->applyToken($token);
         $response->assertOk()->assertJsonPath('data.applied', true)->assertJsonPath('data.category', 'Household');
@@ -95,10 +123,10 @@ final class WritesTest extends TestCase
         // The categorizer, a rule or another window got there first.
         $this->setCategory($journal, 'Groceries');
 
-        $this->applyToken($token)
-            ->assertStatus(409)
-            ->assertJsonPath('message', 'This transaction is now "Groceries", not "Shopping" as it was when the change was suggested. Nothing was changed.')
-        ;
+        $this
+            ->applyToken($token)
+            ->assertConflict()
+            ->assertJsonPath('message', 'This transaction is now "Groceries", not "Shopping" as it was when the change was suggested. Nothing was changed.');
         self::assertSame('Groceries', $this->categoryOf($journal), 'the newer category survives');
     }
 
@@ -107,66 +135,37 @@ final class WritesTest extends TestCase
         $journal = $this->journalFor('Shopping');
 
         // The model does what a confident model does: calls the tool and announces success.
-        $this->model
-            ->willCall('propose_category_change', ['transaction_id' => $journal->id, 'category' => 'Household'])
-            ->willSay('Done - I have changed it to Household.')
-        ;
+        $this->model->willCall('propose_category_change', ['transaction_id' => $journal->id, 'category' => 'Household'])
+            ->willSay('Done - I have changed it to Household.');
         $response = $this->postJson(route('fork.chat.send'), ['message' => 'that one is household']);
         $response->assertOk();
 
         self::assertSame('Shopping', $this->categoryOf($journal), 'the ledger is untouched until a person confirms');
-        $card     = $response->json('data.proposals.0');
+        $card = $response->json('data.proposals.0');
         self::assertSame('category_change', $card['type']);
         self::assertSame('Shopping', $card['from']);
         self::assertSame('Household', $card['to']);
         self::assertSame('40.00', $card['amount']);
 
         // The token travels to the browser, never through the model.
-        $sent     = json_encode($this->model->calls[1]['messages']);
+        $sent = json_encode($this->model->calls[1]['messages']);
         self::assertStringNotContainsString($card['token'], (string) $sent, 'the model must not be handed the confirmation token');
         self::assertStringContainsString('NOTHING HAS CHANGED YET', (string) $sent);
     }
 
-    public function testAProposalMadeWhileStreamingSurvivesToTheConfirmation(): void
-    {
-        $journal = $this->journalFor('Shopping');
-        $this->model
-            ->willCall('propose_category_change', ['transaction_id' => $journal->id, 'category' => 'Household'])
-            ->willSay('Confirm the card and I will change it.')
-        ;
-
-        // Regression: proposals used to live in the session, and StartSession has already written
-        // the session by the time a streamed response's callback runs — so the proposal vanished and
-        // every confirmation came back "expired". Nothing but a real click through the streaming
-        // endpoint showed it, hence this test.
-        $stream = $this->post(route('fork.chat.stream'), ['message' => 'that one is household'], ['Accept' => 'text/event-stream']);
-        $stream->assertOk();
-
-        $token  = null;
-        foreach ($this->events($stream->streamedContent()) as $event) {
-            if ('done' === $event['event']) {
-                $token = $event['data']['proposals'][0]['token'] ?? null;
-            }
-        }
-        self::assertNotNull($token, 'the finished turn carries the confirmation card');
-
-        $this->applyToken((string) $token)->assertOk()->assertJsonPath('data.category', 'Household');
-        self::assertSame('Household', $this->categoryOf($journal));
-    }
-
     public function testSomebodyElsesTransactionCannotBeProposed(): void
     {
-        $other   = $this->createUser('other@email.com');
-        $group   = $this->createWithdrawal($other, [
+        $other = $this->createUser('other@email.com');
+        $group = $this->createWithdrawal($other, [
             'category_name' => 'Shopping',
             'amount'        => '99.00',
             'date'          => Carbon::parse('2026-05-04 12:00:00', 'UTC'),
             'description'   => 'THEIRS',
-            'currency_code' => 'EUR',
+            'currency_code' => 'EUR'
         ]);
         $journal = $group->transactionJournals()->first();
 
-        $result  = app(ToolRegistry::class)->execute(
+        $result = app(ToolRegistry::class)->execute(
             $this->user,
             'propose_category_change',
             (string) json_encode(['transaction_id' => $journal->id, 'category' => 'Household'])
@@ -183,7 +182,7 @@ final class WritesTest extends TestCase
         self::assertNotContains('propose_category_change', app(ToolRegistry::class)->names());
 
         // Even if a model asks for it by name, there is nothing behind the name.
-        $result  = app(ToolRegistry::class)->execute(
+        $result = app(ToolRegistry::class)->execute(
             $this->user,
             'propose_category_change',
             (string) json_encode(['transaction_id' => $journal->id, 'category' => 'Household'])
@@ -204,17 +203,22 @@ final class WritesTest extends TestCase
             'fork.chat_max_rounds' => 4,
             'fork.chat_history'    => 12,
             'fork.chat_max_rows'   => 50,
-            'fork.learned_rules'   => false,
+            'fork.learned_rules'   => false
         ]);
         $this->model = new FakeCompletionClient();
         $this->app->instance(ChatCompletionClient::class, $this->model);
-        $this->user  = $this->createAuthenticatedUser();
+        $this->user = $this->createAuthenticatedUser();
         $this->actingAs($this->user);
     }
 
-    private function applyToken(string $token): \Illuminate\Testing\TestResponse
+    private function applyToken(#[\SensitiveParameter] string $token): \Illuminate\Testing\TestResponse
     {
         return $this->postJson(route('fork.chat.apply'), ['token' => $token]);
+    }
+
+    private function categoryOf(TransactionJournal $journal): null|string
+    {
+        return $journal->fresh()?->categories()->first()?->name;
     }
 
     /**
@@ -240,11 +244,6 @@ final class WritesTest extends TestCase
         return $events;
     }
 
-    private function categoryOf(TransactionJournal $journal): ?string
-    {
-        return $journal->fresh()?->categories()->first()?->name;
-    }
-
     private function journalFor(string $category): TransactionJournal
     {
         $group = $this->createWithdrawal($this->user, [
@@ -252,7 +251,7 @@ final class WritesTest extends TestCase
             'amount'        => '40.00',
             'date'          => Carbon::parse('2026-05-04 12:00:00', 'UTC'),
             'description'   => 'AMAZON MKTPL*AB12CD34',
-            'currency_code' => 'EUR',
+            'currency_code' => 'EUR'
         ]);
         // The target category has to exist before it can be proposed.
         Category::firstOrCreate(['user_id' => $this->user->id, 'user_group_id' => $this->user->user_group_id, 'name' => 'Household']);

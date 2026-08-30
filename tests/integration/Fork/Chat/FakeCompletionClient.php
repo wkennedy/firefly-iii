@@ -36,7 +36,7 @@ use Override;
 final class FakeCompletionClient implements ChatCompletionClient
 {
     /** @var list<array{messages: list<array<string, mixed>>, tools: list<array<string, mixed>>}> */
-    public array $calls  = [];
+    public array $calls = [];
 
     /** @var list<array<string, mixed>> */
     private array $queue = [];
@@ -48,11 +48,14 @@ final class FakeCompletionClient implements ChatCompletionClient
      */
     public static function toolCall(string $name, array $arguments, string $id = 'call-1'): array
     {
-        return ['content' => '', 'tool_calls' => [[
-            'id'       => $id,
-            'type'     => 'function',
-            'function' => ['name' => $name, 'arguments' => json_encode($arguments, JSON_THROW_ON_ERROR)],
-        ]]];
+        return [
+            'content'    => '',
+            'tool_calls' => [[
+                'id'       => $id,
+                'type'     => 'function',
+                'function' => ['name' => $name, 'arguments' => json_encode($arguments, JSON_THROW_ON_ERROR)]
+            ]]
+        ];
     }
 
     #[Override]
@@ -66,6 +69,13 @@ final class FakeCompletionClient implements ChatCompletionClient
         return array_shift($this->queue) ?? ['content' => 'nothing queued'];
     }
 
+    public function fail(): self
+    {
+        $this->explode = true;
+
+        return $this;
+    }
+
     #[Override]
     public function stream(array $messages, array $tools, callable $onDelta): array
     {
@@ -77,13 +87,6 @@ final class FakeCompletionClient implements ChatCompletionClient
         }
 
         return $message;
-    }
-
-    public function fail(): self
-    {
-        $this->explode = true;
-
-        return $this;
     }
 
     /**
@@ -113,16 +116,16 @@ final class FakeCompletionClient implements ChatCompletionClient
         return $this;
     }
 
-    public function willSay(string $content): self
-    {
-        return $this->willAnswer(['content' => $content]);
-    }
-
     /**
      * @param array<string, mixed> $arguments
      */
     public function willCall(string $name, array $arguments): self
     {
         return $this->willAnswer(self::toolCall($name, $arguments));
+    }
+
+    public function willSay(string $content): self
+    {
+        return $this->willAnswer(['content' => $content]);
     }
 }

@@ -64,6 +64,34 @@ const firstId = async (p) => ((await api(p)).data[0] || {}).id;
     report.push(current);
     console.log(`${current.ok ? 'OK  ' : 'FAIL'} ${String(current.status).padEnd(4)} ${p}` + (current.markers.length ? ' markers=' + current.markers.join('|') : '') + (current.failed.length ? ` failed=${current.failed.length}` : '') + (current.console.length ? ` console=${current.console.length}` : '') + (current.pageErrors.length ? ` pageErrors=${current.pageErrors.length}` : ''));
   }
+  // FORK: the chat widget, when FORK_CHAT is on. Checked here because the failure that shipped was
+  // invisible to PHPUnit and to the page crawl above: `.fk-chat__panel { display: flex }` overrode
+  // the browser's `[hidden] { display: none }`, so the panel was open from page load and its close
+  // button toggled an attribute nothing honoured. Everything still rendered, nothing errored.
+  const widget = { path: '(chat widget)', status: 200, markers: [], console: [], pageErrors: [], failed: [] };
+  try {
+    await page.goto(BASE + '/preferences', { waitUntil: 'networkidle' });
+    if (await page.locator('#fork-chat').count()) {
+      const panel = page.locator('.fk-chat__panel');
+      const step = async (label, want) => {
+        const visible = await panel.isVisible();
+        if (visible !== want) widget.pageErrors.push(`panel ${label}: visible=${visible}, expected ${want}`);
+      };
+      await step('on load must be closed', false);
+      await page.click('.fk-chat__launcher');
+      await step('after opening', true);
+      await page.click('.fk-chat__close');
+      await step('after the close button', false);
+      await page.click('.fk-chat__launcher');
+      await page.keyboard.press('Escape');
+      await step('after Escape', false);
+    }
+  } catch (e) { widget.pageErrors.push('WIDGET: ' + String(e).slice(0, 200)); }
+  widget.ok = !widget.pageErrors.length;
+  if (!widget.ok) await page.screenshot({ path: path.join(shots, 'chat_widget.png') }).catch(() => {});
+  report.push(widget);
+  console.log(`${widget.ok ? 'OK  ' : 'FAIL'} ${String(widget.status).padEnd(4)} ${widget.path}` + (widget.pageErrors.length ? ' ' + widget.pageErrors.join('; ') : ''));
+
   fs.writeFileSync(path.join(here, 'crawl-report.json'), JSON.stringify(report, null, 2));
   await browser.close();
   const bad = report.filter(r => !r.ok).length;

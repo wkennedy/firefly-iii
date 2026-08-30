@@ -91,7 +91,7 @@ Three layers, cheapest first:
 
 **Browser smoke test:** `.fork/dev-crawl.sh` (Playwright, installed into `.fork/dev/` on first use) logs in
 and visits every major page, failing on HTTP errors, Laravel error pages, JS console/page errors and
-failed asset/API requests; report in `.fork/dev/crawl-report.json`, screenshots in `.fork/dev/shots/`.
+failed asset/API requests; it also opens and closes the chat panel when `FORK_CHAT` is on; report in `.fork/dev/crawl-report.json`, screenshots in `.fork/dev/shots/`.
 For a `--dump` environment set a dev password on the copy first, then `DEV_EMAIL=… DEV_PASSWORD=… .fork/dev-crawl.sh`.
 Known upstream noise: `/profile` logs two `onfocus` console errors from the Passport widgets on the official image too.
 

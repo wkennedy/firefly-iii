@@ -64,6 +64,16 @@
     }
 }
 
+/*
+ * The `hidden` attribute has to win. Every visible element here sets its own `display`, and an
+ * author `display: flex` silently beats the user agent's `[hidden] { display: none }` — which is
+ * exactly how the panel shipped permanently open, with a close button that toggled an attribute
+ * nothing honoured. Scoped to the widget, so it cannot affect the rest of Firefly.
+ */
+.fk-chat [hidden] {
+    display: none !important;
+}
+
 .fk-chat__launcher {
     position: fixed;
     right: 24px;
@@ -363,10 +373,6 @@
     border-radius: 50%;
     background: var(--fkc-accent);
     animation: fk-chat-pulse 1.1s ease-in-out infinite;
-}
-
-.fk-chat__status[hidden] {
-    display: none;
 }
 
 @keyframes fk-chat-pulse {

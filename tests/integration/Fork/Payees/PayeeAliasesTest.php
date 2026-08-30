@@ -62,6 +62,21 @@ final class PayeeAliasesTest extends TestCase
         self::assertSame('AMAZON STORE CARD', $asset->findOrCreate('AMAZON STORE CARD', AccountTypeEnum::ASSET->value)->name);
     }
 
+    public function testANewAliasReportsItselfActive(): void
+    {
+        $user = $this->createAuthenticatedUser();
+        $this->actingAs($user);
+
+        // `active` defaults to true in the database. Before the model was read back, creating an
+        // alias answered active:false, which reads as "created but switched off".
+        $this->postJson(route('api.v1.fork.payee-aliases.store'), [
+            'account_type'   => 'expense',
+            'match_type'     => 'prefix',
+            'pattern'        => 'AMAZON',
+            'canonical_name' => 'Amazon'
+        ])->assertCreated()->assertJsonPath('data.active', true);
+    }
+
     public function testApiCrudAndMerge(): void
     {
         $user  = $this->createAuthenticatedUser();
@@ -183,6 +198,21 @@ final class PayeeAliasesTest extends TestCase
         self::assertSame(['Amazon', 'Other shop'], $this->expenseNames($user));
         self::assertSame(3, Account::query()->where('name', 'Amazon')->firstOrFail()->transactions()->count());
         self::assertSame(4, TransactionJournal::query()->where('user_id', $user->id)->count(), 'no journal lost');
+    }
+
+    public function testMergeWorksOverHttpNotOnlyFromTheConsole(): void
+    {
+        $user = $this->createAuthenticatedUser();
+        $this->actingAs($user);
+        $this->alias($user, 'prefix', 'AMAZON', 'Amazon');
+
+        // Regression: fork commands used to be registered only under runningInConsole(), so this
+        // endpoint — which reaches the command through Artisan::call() during an HTTP request —
+        // answered "the command does not exist" every time, including in the documented rollout.
+        $this
+            ->postJson(route('api.v1.fork.payee-aliases.merge'), ['dry_run' => true])
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['output']]);
     }
 
     public function testPrefixAliasCollapsesFragmentsIntoOneExpenseAccount(): void

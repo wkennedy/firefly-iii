@@ -78,19 +78,21 @@ final class ForkServiceProvider extends ServiceProvider
 
         TransactionJournalMeta::observe(ExternalIdObserver::class);
 
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                AutoBudgetCatchUp::class,
-                BudgetsApplyDefaults::class,
-                BudgetsSuggest::class,
-                ExternalIdsBackfill::class,
-                PairTransfers::class,
-                PayeesMerge::class,
-                PayeesPruneEmpty::class,
-                PurgeDeletedTransactions::class,
-                SeedDevData::class
-            ]);
-        }
+        // Registered unconditionally, not only runningInConsole(): PayeeAliasController::merge and
+        // BudgetSuggestionController reach these through Artisan::call() during an HTTP request, and
+        // under the console-only guard that failed with 'the command does not exist'. Laravel
+        // resolves commands lazily, so registering them always costs nothing.
+        $this->commands([
+            AutoBudgetCatchUp::class,
+            BudgetsApplyDefaults::class,
+            BudgetsSuggest::class,
+            ExternalIdsBackfill::class,
+            PairTransfers::class,
+            PayeesMerge::class,
+            PayeesPruneEmpty::class,
+            PurgeDeletedTransactions::class,
+            SeedDevData::class
+        ]);
     }
 
     #[Override]

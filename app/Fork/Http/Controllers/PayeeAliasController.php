@@ -79,6 +79,9 @@ final class PayeeAliasController extends Controller
             return response()->json(['message' => $error], 422);
         }
         $alias = ForkPayeeAlias::query()->create($data + ['user_group_id' => $this->user()->user_group_id]);
+        // Read back the row: `active` and `order` come from database defaults when the request
+        // omits them, and without this the response says active:false for an alias that is live.
+        $alias->refresh();
 
         return response()->json(['data' => $this->present($alias)], 201);
     }

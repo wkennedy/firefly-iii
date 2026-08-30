@@ -26,6 +26,9 @@ namespace FireflyIII\Providers;
 
 use FireflyIII\Factory\AccountFactory as UpstreamAccountFactory;
 use FireflyIII\Factory\TransactionJournalFactory as UpstreamTransactionJournalFactory;
+use FireflyIII\Fork\Chat\ChatCompletionClient;
+use FireflyIII\Fork\Chat\LmStudioClient;
+use FireflyIII\Fork\Chat\ProposalStore;
 use FireflyIII\Fork\Config\LiabilityTransfers;
 use FireflyIII\Fork\Console\Commands\AutoBudgetCatchUp;
 use FireflyIII\Fork\Console\Commands\BudgetsApplyDefaults;
@@ -44,6 +47,7 @@ use FireflyIII\Fork\Support\Steam;
 use FireflyIII\Fork\TransactionRules\Actions\ConvertToLiabilityTransfer;
 use FireflyIII\Models\TransactionJournalMeta;
 use FireflyIII\Services\Internal\Update\JournalUpdateService as UpstreamJournalUpdateService;
+use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Override;
@@ -61,6 +65,15 @@ final class ForkServiceProvider extends ServiceProvider
             ->prefix('api/v1/fork')
             ->group(function (): void {
                 $this->loadRoutesFrom(base_path('routes/fork.php'));
+            });
+
+        // Fork web routes under /fork/* — session-authenticated, for the logged-in UI itself
+        // (routes/fork-web.php). The chat widget posts here; it cannot use the API, which is
+        // Passport-only.
+        Route::middleware(['web', 'user-full-auth'])
+            ->prefix('fork')
+            ->group(function (): void {
+                $this->loadRoutesFrom(base_path('routes/fork-web.php'));
             });
 
         TransactionJournalMeta::observe(ExternalIdObserver::class);
@@ -92,6 +105,14 @@ final class ForkServiceProvider extends ServiceProvider
         $this->app->bind(UpstreamAccountFactory::class, AccountFactory::class);
         // Category corrections become learned rules (config fork.learned_rules).
         $this->app->bind(UpstreamJournalUpdateService::class, JournalUpdateService::class);
+
+        // One proposal store per request: the write tool puts a proposal in it and the controller
+        // reads the same instance back to send the confirmation card to the browser.
+        $this->app->scoped(ProposalStore::class);
+
+        // Chat assistant: the completions client is bound behind an interface so the agent can be
+        // tested against a replaying fake instead of a running model (config fork.chat).
+        $this->app->bind(ChatCompletionClient::class, static fn(): LmStudioClient => new LmStudioClient(new GuzzleClient()));
 
         // Rule action `convert_liability_transfer` is always registered (so existing rules keep
         // validating); it refuses to act unless the flag below is on.

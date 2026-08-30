@@ -52,6 +52,13 @@ Route::delete('category-budgets/{id}', [FireflyIII\Fork\Http\Controllers\Categor
     ->whereNumber('id')
     ->name('api.v1.fork.category-budgets.destroy');
 
+// The chat's read-only tools, for the stdio MCP shim (config fork.chat_tools_api). Write tools are
+// never routed here; see Fork\Http\Controllers\ChatToolController.
+Route::get('chat/tools', [FireflyIII\Fork\Http\Controllers\ChatToolController::class, 'index'])->name('api.v1.fork.chat.tools.index');
+Route::post('chat/tools/{tool}', [FireflyIII\Fork\Http\Controllers\ChatToolController::class, 'execute'])
+    ->where('tool', '[a-z_]+')
+    ->name('api.v1.fork.chat.tools.execute');
+
 Route::get('insight/budget-suggestions', [FireflyIII\Fork\Http\Controllers\BudgetSuggestionController::class, 'index'])->name(
     'api.v1.fork.insight.budget-suggestions'
 );

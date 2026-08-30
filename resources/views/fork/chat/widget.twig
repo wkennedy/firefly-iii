@@ -1,0 +1,55 @@
+{# FORK: the in-app chat assistant (FORK_CHAT), included from layout/default.twig just before
+   </body>. Everything the script needs travels on data attributes — no inline JavaScript, so the
+   page's strict CSP (script-src 'strict-dynamic' + nonce) needs no exception.
+
+   The posted date range is the one the page itself is showing (the Range middleware's session
+   values), so "this month" in a question means the same thing it means on screen. #}
+{% if Config.get('fork.chat') %}
+    <div id="fork-chat"
+         class="fk-chat"
+         data-dark="{{ 'dark' == darkMode ? 'always' : ('browser' == darkMode ? 'browser' : 'never') }}"
+         data-stream-url="{{ route('fork.chat.stream') }}"
+         data-send-url="{{ route('fork.chat.send') }}"
+         data-apply-url="{{ route('fork.chat.apply') }}"
+         data-stream="{{ Config.get('fork.chat_stream') ? '1' : '0' }}"
+         data-csrf="{{ csrf_token() }}"
+         data-start="{{ Session.has('start') ? Session.get('start')|date('Y-m-d') : '' }}"
+         data-end="{{ Session.has('end') ? Session.get('end')|date('Y-m-d') : '' }}">
+
+        <button type="button" class="fk-chat__launcher" aria-expanded="false" aria-controls="fork-chat-panel"
+                title="Ask about your finances">
+            <span class="fa fa-comment" aria-hidden="true"></span>
+            <span class="sr-only">Ask about your finances</span>
+        </button>
+
+        <section id="fork-chat-panel" class="fk-chat__panel" role="dialog" aria-label="Ask about your finances" hidden>
+            <header class="fk-chat__head">
+                <span class="fk-chat__title">Ask about your finances</span>
+                <span class="fk-chat__head-actions">
+                    <button type="button" class="fk-chat__icon-button fk-chat__clear">Clear</button>
+                    <button type="button" class="fk-chat__icon-button fk-chat__close" aria-label="Close">&times;</button>
+                </span>
+            </header>
+
+            <div class="fk-chat__log" aria-live="polite">
+                <div class="fk-chat__hint">
+                    Ask about transactions, categories and dates. Every number comes from your own ledger.
+                    <ul>
+                        <li>How much did I spend on groceries last month?</li>
+                        <li>What did I buy at Amazon in June?</li>
+                        <li>Which categories did I spend the most on this year?</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="fk-chat__status" hidden></div>
+
+            <form class="fk-chat__form">
+                <textarea class="fk-chat__input" rows="1" placeholder="Ask a question…" aria-label="Your question"></textarea>
+                <button type="submit" class="fk-chat__send">Ask</button>
+            </form>
+        </section>
+    </div>
+
+    <script type="text/javascript" src="fork/js/chat.js?v={{ FF_BUILD_TIME }}" nonce="{{ JS_NONCE }}"></script>
+{% endif %}

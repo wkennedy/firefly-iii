@@ -60,6 +60,12 @@ chart from the overlay's CSS tokens — palette, grid, tooltips, no point-per-da
 "top N + Other" grouping, theme-aware "today" marker — without editing upstream's `charts.js`.
 Compare locally: `.fork/dev-up.sh --seed --flags FORK_UI_OVERLAY=false` shows the stock look.
 
+## MCP server
+
+`mcp/firefly-mcp.mjs` exposes the chat's read-only tools to a local MCP host (LM Studio on the model
+machine, or Claude Desktop) over stdio. No dependencies, read-only whatever `FORK_CHAT_WRITES` says,
+and it needs `FORK_CHAT_TOOLS_API=true` on the Firefly side. Install and checks: `mcp/README.md`.
+
 ## Local development
 
 Three layers, cheapest first:

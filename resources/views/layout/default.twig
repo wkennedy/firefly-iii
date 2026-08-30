@@ -74,6 +74,7 @@
     {# Firefly III customisations #}
     <link href="v1/css/firefly.css?v={{ FF_BUILD_TIME }}" rel="stylesheet" type="text/css" nonce="{{ JS_NONCE }}">
     {# FORK: optional UI overlay (FORK_UI_OVERLAY) #}{% include 'fork.layout.overlay' %}
+    {# FORK: in-app chat assistant styles (FORK_CHAT) #}{% include 'fork.chat.styles' %}
 
     {# Extra CSS for the demo: #}
     {% if not shownDemo %}
@@ -303,6 +304,8 @@
 <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
     <input type="hidden" name="_token" value="{{ csrf_token() }}"/>
 </form>
+
+{# FORK: in-app chat assistant (FORK_CHAT) #}{% include 'fork.chat.widget' %}
 
 </body>
 </html>

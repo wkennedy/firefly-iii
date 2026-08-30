@@ -32,3 +32,5 @@ public/v2/i18n
 .idea
 .claude
 /.fork/ROADMAP.md
+/.phpunit.cache/test-results
+/.fork/CHAT-DESIGN.md

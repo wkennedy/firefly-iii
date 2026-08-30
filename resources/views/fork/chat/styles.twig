@@ -1,0 +1,6 @@
+{# FORK: stylesheet for the in-app chat widget (FORK_CHAT). Loaded from layout/default.twig's head
+   through a one-line hook, next to the UI overlay. Independent of FORK_UI_OVERLAY: chat.css reads
+   the overlay's tokens when they exist and falls back to its own palette when they do not. #}
+{% if Config.get('fork.chat') %}
+    <link href="fork/css/chat.css?v={{ FF_BUILD_TIME }}" rel="stylesheet" type="text/css" nonce="{{ JS_NONCE }}">
+{% endif %}

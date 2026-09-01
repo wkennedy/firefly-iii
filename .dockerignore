@@ -24,3 +24,6 @@ phpstan-report.txt
 tests
 .fork/*
 !.fork/docker
+# Laravel compiled manifests/caches are generated at boot (entrypoint) or on first artisan run;
+# a copy from a developer machine would be trusted and can leave core providers unregistered.
+bootstrap/cache/*.php

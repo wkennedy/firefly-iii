@@ -1,10 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 /*
  * QueryRequest.php
- * Copyright (c) 2025 james@firefly-iii.org
+ * Copyright (c) 2026 james@firefly-iii.org
  *
  * This file is part of Firefly III (https://github.com/firefly-iii).
  *
@@ -22,6 +20,8 @@ declare(strict_types=1);
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+declare(strict_types=1);
+
 namespace FireflyIII\Api\V1\Requests\Generic;
 
 use FireflyIII\Api\V1\Requests\ApiRequest;
@@ -36,7 +36,7 @@ class QueryRequest extends ApiRequest
 
     public function rules(): array
     {
-        return ['query' => sprintf('min:0|max:50|%s', $this->required)];
+        return ['query' => sprintf('min:0|max:1024|%s', $this->required)];
     }
 
     public function withValidator(Validator $validator): void

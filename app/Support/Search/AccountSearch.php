@@ -24,6 +24,7 @@ declare(strict_types=1);
 
 namespace FireflyIII\Support\Search;
 
+use FireflyIII\Models\UserGroup;
 use FireflyIII\User;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,9 +51,11 @@ class AccountSearch implements GenericSearchInterface
     private string $query;
     private array $types              = [];
     private User $user;
+    private UserGroup $userGroup;
 
     public function search(): Collection
     {
+        $this->userGroup->toArray(); // used to stop phpstan.
         $searchQuery   = $this->user->accounts()
             ->leftJoin('account_types', 'accounts.account_type_id', '=', 'account_types.id')
             ->leftJoin('account_meta', 'accounts.id', '=', 'account_meta.account_id')
@@ -64,16 +67,18 @@ class AccountSearch implements GenericSearchInterface
         switch ($this->field) {
             default:
             case self::SEARCH_ALL:
-                $searchQuery->where(static function (Builder $q) use ($like): void {
-                    $q->whereLike('accounts.id', $like);
-                    $q->orWhereLike('accounts.name', $like);
-                    $q->orWhereLike('accounts.iban', $like);
-                });
-                // meta data:
-                $searchQuery->orWhere(static function (Builder $q) use ($originalQuery): void {
-                    $json = json_encode($originalQuery, JSON_THROW_ON_ERROR);
-                    $q->where('account_meta.name', '=', 'account_number');
-                    $q->whereLike('account_meta.data', $json);
+                $searchQuery->where(static function (Builder $q1) use ($like, $originalQuery): void {
+                    $q1->where(static function (Builder $q2) use ($like): void {
+                        $q2->whereLike('accounts.id', $like);
+                        $q2->orWhereLike('accounts.name', $like);
+                        $q2->orWhereLike('accounts.iban', $like);
+                    });
+                    // meta data:
+                    $q1->orWhere(static function (Builder $q3) use ($originalQuery): void {
+                        $json = json_encode($originalQuery, JSON_THROW_ON_ERROR);
+                        $q3->where('account_meta.name', '=', 'account_number');
+                        $q3->whereLike('account_meta.data', $json);
+                    });
                 });
 
                 break;
@@ -95,7 +100,7 @@ class AccountSearch implements GenericSearchInterface
 
             case self::SEARCH_NUMBER:
                 // meta data:
-                $searchQuery->Where(static function (Builder $q) use ($originalQuery): void {
+                $searchQuery->where(static function (Builder $q) use ($originalQuery): void {
                     $json = json_encode($originalQuery, JSON_THROW_ON_ERROR);
                     $q->where('account_meta.name', 'account_number');
                     $q->where('account_meta.data', $json);
@@ -125,7 +130,13 @@ class AccountSearch implements GenericSearchInterface
     public function setUser(Authenticatable|User|null $user): void
     {
         if ($user instanceof User) {
-            $this->user = $user;
+            $this->user      = $user;
+            $this->userGroup = $user->userGroup;
         }
+    }
+
+    public function setUserGroup(UserGroup $userGroup): void
+    {
+        $this->userGroup = $userGroup;
     }
 }

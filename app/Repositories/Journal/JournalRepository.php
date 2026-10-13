@@ -136,7 +136,11 @@ class JournalRepository implements JournalRepositoryInterface, UserGroupInterfac
     #[Override]
     public function getAllUncompletedJournals(): Collection
     {
-        return TransactionJournal::query()->where('completed', false)->get(['transaction_journals.*']);
+        if (null === $this->userGroup) {
+            return TransactionJournal::query()->where('completed', false)->get(['transaction_journals.*']);
+        }
+
+        return $this->userGroup->transactionJournals()->where('completed', false)->get(['transaction_journals.*']);
     }
 
     public function getDestinationAccount(TransactionJournal $journal): Account
@@ -254,7 +258,7 @@ class JournalRepository implements JournalRepositoryInterface, UserGroupInterfac
      */
     public function searchJournalDescriptions(string $search, int $limit): Collection
     {
-        $query = $this->user->transactionJournals()->orderBy('date', 'DESC')->orderBy('description', 'ASC');
+        $query = $this->user->transactionJournals()->orderBy('date', 'DESC')->orderBy('id', 'DESC')->orderBy('description', 'ASC');
         if ('' !== $search) {
             $query->whereLike('description', sprintf('%%%s%%', $search));
         }

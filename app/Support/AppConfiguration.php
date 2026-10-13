@@ -29,6 +29,7 @@ use FireflyIII\Models\Configuration;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Contracts\Encryption\EncryptException;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -61,7 +62,7 @@ class AppConfiguration
         try {
             /** @var null|Configuration $config */
             $config = Configuration::query()->where('name', $name)->first(['id', 'name', 'data']);
-        } catch (Exception|QueryException $e) {
+        } catch (Exception|FireflyException|QueryException $e) {
             throw new FireflyException(sprintf('Could not poll the database: %s', $e->getMessage()), 0, $e);
         }
 
@@ -76,6 +77,18 @@ class AppConfiguration
         }
 
         return $this->set($name, $default);
+    }
+
+    public function getByPrefix(string $name): Collection
+    {
+        try {
+            /** @var Collection $collection */
+            $collection = Configuration::query()->whereLike('name', sprintf('%s%%', $name))->get(['id', 'name', 'data']);
+        } catch (Exception|FireflyException|QueryException $e) {
+            throw new FireflyException(sprintf('Could not poll the database: %s', $e->getMessage()), 0, $e);
+        }
+
+        return $collection;
     }
 
     public function getEncrypted(string $name, mixed $default = null): ?Configuration
@@ -128,6 +141,9 @@ class AppConfiguration
         return $this->set($name, $value);
     }
 
+    /**
+     * @throws FireflyException
+     */
     public function set(string $name, mixed $value): Configuration
     {
         try {

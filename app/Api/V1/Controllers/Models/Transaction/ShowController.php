@@ -55,7 +55,7 @@ final class ShowController extends Controller
     public function index(Request $request): JsonResponse
     {
         $pageSize     = $this->parameters->get('limit');
-        $type         = $request->get('type') ?? 'default';
+        $type         = $request->input('type') ?? 'default';
         $this->parameters->set('type', $type);
 
         $types        = $this->mapTransactionTypes($this->parameters->get('type'));
@@ -123,6 +123,7 @@ final class ShowController extends Controller
             ->withAPIInformation()
         ;
 
+        /** @var null|TransactionGroup $selectedGroup */
         $selectedGroup = $collector->getGroups()->first();
         if (null === $selectedGroup) {
             throw new NotFoundHttpException();
@@ -135,7 +136,6 @@ final class ShowController extends Controller
 
         /** @var TransactionGroupTransformer $transformer */
         $transformer   = app(TransactionGroupTransformer::class);
-        $transformer->setParameters($this->parameters);
         $resource      = new Item($selectedGroup, $transformer, 'transactions');
 
         return response()->json($manager->createData($resource)->toArray())->header('Content-Type', self::CONTENT_TYPE);

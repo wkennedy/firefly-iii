@@ -52,7 +52,7 @@ if (!function_exists('limitStringLength')) {
      */
     function limitStringLength(string $string): string
     {
-        $maxChars = 75;
+        $maxChars = 35;
         $length   = strlen($string);
         if ($length > $maxChars) {
             return substr_replace($string, ' ... ', (int)($maxChars / 2), $length - $maxChars);
@@ -380,7 +380,7 @@ Breadcrumbs::for(
     'subscriptions.index',
     static function (Generator $breadcrumbs): void {
         $breadcrumbs->parent('home');
-        $breadcrumbs->push(trans('breadcrumbs.bills'), route('subscriptions.index'));
+        $breadcrumbs->push(trans('breadcrumbs.subscriptions'), route('subscriptions.index'));
     }
 );
 Breadcrumbs::for(
@@ -1367,13 +1367,13 @@ Breadcrumbs::for(
 //    }
 // );
 
-// Breadcrumbs::for(
-//    'administrations.create',
-//    static function (Generator $breadcrumbs): void {
-//        $breadcrumbs->parent('administrations.index');
-//        $breadcrumbs->push(trans('firefly.administrations_create_breadcrumb'), route('administrations.create'));
-//    }
-// );
+Breadcrumbs::for(
+    'administrations.create',
+    static function (Generator $breadcrumbs): void {
+        $breadcrumbs->parent('administrations.index');
+        $breadcrumbs->push(trans('firefly.administrations_create_breadcrumb'), route('administrations.create'));
+    }
+);
 Breadcrumbs::for(
     'administrations.edit',
     static function (Generator $breadcrumbs, UserGroup $userGroup): void {

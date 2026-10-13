@@ -89,7 +89,7 @@ class OperatorQuerySearch implements SearchInterface
      */
     public function __construct()
     {
-        Log::debug('Constructed OperatorQuerySearch');
+        // Log::debug('Constructed OperatorQuerySearch');
         $this->operators          = new Collection();
         $this->validOperators     = array_keys(config('search.operators'));
         $this->startTime          = microtime(true);
@@ -2395,6 +2395,16 @@ class OperatorQuerySearch implements SearchInterface
                 $amount                  = Steam::positive($value);
                 Log::debug(sprintf('Set "%s" using collector with value "%s"', $operator, $amount));
                 $this->collector->foreignAmountIsNot($amount);
+
+                break;
+
+            case 'has_foreign_amount':
+                $this->collector->hasForeignCurrencyId();
+
+                break;
+
+            case '-has_foreign_amount':
+                $this->collector->hasNoForeignCurrencyId();
 
                 break;
 

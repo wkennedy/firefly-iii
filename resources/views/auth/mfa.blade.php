@@ -1,4 +1,4 @@
-@extends('layout.v2.session')
+@extends('layout.v3.auth')
 @section('content')
 
     @if($errors->any())
@@ -20,16 +20,16 @@
     @endif
 
 
-    <div class="card">
+    <div class="card mb-2">
         <div class="card-body login-card-body">
             <p class="login-box-msg">{{ trans('firefly.two_factor_welcome', ['user' => auth()->user()->email]) }}</p>
             <p class="login-box-msg">{{ __('firefly.two_factor_enter_code') }}</p>
 
             <form action="{{ route('two-factor.submit') }}" method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}"/>
-                <div class="input-group mb-3">
+                <div class="input-group mb-2">
                     <input type="text" autofocus required name="one_time_password" inputmode="numeric" autocomplete="one-time-code" class="form-control" placeholder="{{ __('firefly.two_factor_code_here') }}" autofocus />
-                    <div class="input-group-text"> <em class="fa-solid fa-calculator"></em> </div>
+                    <div class="input-group-text"> <em class="bi bi-calculator"></em> </div>
                 </div>
                 <div class="row">
                     <!-- /.col -->

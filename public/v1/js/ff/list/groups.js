@@ -22,8 +22,8 @@ var count = 0;
 
 $(document).ready(function () {
     updateListButtons();
-    $('.clone-transaction').click(cloneTransaction);
-    $('.clone-transaction-and-edit').click(cloneTransactionAndEdit);
+    $('.clone-transaction').on('click', cloneTransaction);
+    $('.clone-transaction-and-edit').on('click', cloneTransactionAndEdit);
 });
 
 
@@ -122,15 +122,18 @@ function countChecked() {
 
 function checkAll() {
     $('.mass-select').prop('checked', true);
+    $('.select-all').prop('checked', true);
 }
 
 function uncheckAll() {
     $('.mass-select').prop('checked', false);
+    $('.select-all').prop('checked', false);
 }
 
 function updateActionButtons() {
     if (0 !== count) {
-        $('.action-menu').removeClass('hidden');
+        console.log('show menu');
+        $('.action-menu').removeClass('d-none');
 
         // also update labels:
         $('.mass-edit span.txt').text(edit_selected_txt + ' (' + count + ')');
@@ -139,17 +142,17 @@ function updateActionButtons() {
 
     }
     if (0 === count) {
-        $('.action-menu').addClass('hidden');
+        $('.action-menu').addClass('d-none');
     }
 }
 
 function cloneTransaction(e) {
+    e.preventDefault();
     var button = $(e.currentTarget);
     var groupId = parseInt(button.data('id'));
-
     $.post(cloneGroupUrl, {
-        _token: token,
-        id: groupId
+        id: groupId,
+        _from: button.data('from'),
     }).done(function (data) {
         // lame but it works
         location.href = data.redirect;
@@ -160,11 +163,13 @@ function cloneTransaction(e) {
 }
 
 function cloneTransactionAndEdit(e) {
+    e.preventDefault();
     var button = $(e.currentTarget);
     var groupId = parseInt(button.data('id'));
 
     $.post(cloneAndEditUrl, {
-        id: groupId
+        id: groupId,
+        _from: button.data('from'),
     }).done(function (data) {
         // lame but it works
         location.href = data.redirect;

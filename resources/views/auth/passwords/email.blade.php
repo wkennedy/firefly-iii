@@ -1,4 +1,4 @@
-@extends('layout.v2.session')
+@extends('layout.v3.auth')
 @section('content')
 
     {{-- SUCCESS MESSAGE (ALWAYS SINGULAR) --}}
@@ -22,7 +22,7 @@
 
 
 
-    <div class="card">
+    <div class="card mb-2">
         <div class="card-body login-card-body">
             @if(session('status'))
             <p class="login-box-msg text-success">
@@ -32,10 +32,10 @@
             <p class="login-box-msg">{{ trans('firefly.reset_password') }}</p>
             <form action="{{ route('password.email') }}" method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}"/>
-                <div class="input-group mb-3">
+                <div class="input-group mb-2">
                     <input type="email" autofocus required class="form-control" name="email"
                            placeholder="{{ trans('form.email') }}"/>
-                    <div class="input-group-text"> <em class="fa-solid fa-envelope"></em> </div>
+                    <div class="input-group-text"> <em class="bi bi-envelope"></em> </div>
                 </div>
                 <div class="row">
                     <div class="col-12">

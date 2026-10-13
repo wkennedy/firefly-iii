@@ -57,7 +57,7 @@ final class BulkController extends Controller
         $this->middleware(function ($request, $next) {
             $this->repository = app(JournalRepositoryInterface::class);
             app('view')->share('title', (string) trans('firefly.transactions'));
-            app('view')->share('mainTitleIcon', 'fa-exchange');
+            app('view')->share('mainTitleIcon', 'bi-shuffle');
 
             return $next($request);
         });
@@ -91,20 +91,21 @@ final class BulkController extends Controller
      */
     public function update(BulkEditJournalRequest $request): RedirectResponse
     {
-        $journalIds     = $request->get('journals');
+        $journalIds     = $request->input('journals');
         $journalIds     = is_array($journalIds) ? $journalIds : [];
-        $ignoreCategory = 1 === (int) $request->get('ignore_category');
-        $ignoreBudget   = 1 === (int) $request->get('ignore_budget');
-        $tagsAction     = $request->get('tags_action');
+        $ignoreCategory = 1 === (int) $request->input('ignore_category');
+        $ignoreBudget   = 1 === (int) $request->input('ignore_budget');
+        $tagsAction     = $request->input('tags_action');
         $collection     = new Collection();
         $count          = 0;
+        $tags           = null === $request->input('tags') ? [] : $request->input('tags');
 
         foreach ($journalIds as $journalId) {
             $journalId = (int) $journalId;
             $journal   = $this->repository->find($journalId);
             if (null !== $journal) {
                 $resultA = $this->updateJournalBudget($journal, $ignoreBudget, $request->integer('budget_id'));
-                $resultB = $this->updateJournalTags($journal, $tagsAction, explode(',', $request->convertString('tags')));
+                $resultB = $this->updateJournalTags($journal, $tagsAction, $tags);
                 $resultC = $this->updateJournalCategory($journal, $ignoreCategory, $request->convertString('category'));
                 if ($resultA || $resultB || $resultC) {
                     ++$count;

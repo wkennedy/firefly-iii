@@ -36,8 +36,8 @@ use FireflyIII\Transformers\TransactionGroupTransformer;
 use FireflyIII\User;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -61,7 +61,7 @@ final class ShowController extends Controller
             $this->aleRepository = app(ALERepositoryInterface::class);
 
             app('view')->share('title', (string) trans('firefly.transactions'));
-            app('view')->share('mainTitleIcon', 'fa-exchange');
+            app('view')->share('mainTitleIcon', 'bi-shuffle');
 
             return $next($request);
         });
@@ -75,6 +75,11 @@ final class ShowController extends Controller
         return response()->json($this->repository->expandGroup($transactionGroup));
     }
 
+    public function redirectToGroup(TransactionJournal $journal): RedirectResponse
+    {
+        return redirect(route('transactions.show', [$journal->transaction_group_id]));
+    }
+
     /**
      * @return Factory|View
      *
@@ -83,51 +88,49 @@ final class ShowController extends Controller
     public function show(TransactionGroup $transactionGroup): Factory|\Illuminate\Contracts\View\View
     {
         /** @var User $admin */
-        $admin           = auth()->user();
+        $admin                         = auth()->user();
 
         // use new group collector:
         /** @var GroupCollectorInterface $collector */
-        $collector       = app(GroupCollectorInterface::class);
+        $collector                     = app(GroupCollectorInterface::class);
         $collector->setUser($admin)->setTransactionGroup($transactionGroup)->withAPIInformation();
 
         /** @var null|TransactionGroup $selectedGroup */
-        $selectedGroup   = $collector->getGroups()->first();
+        $selectedGroup                 = $collector->getGroups()->first();
         if (null === $selectedGroup) {
             throw new NotFoundHttpException();
         }
 
         // enrich
-        $enrichment      = new TransactionGroupEnrichment();
+        $enrichment                    = new TransactionGroupEnrichment();
         $enrichment->setUser($admin);
-        $selectedGroup   = $enrichment->enrichSingle($selectedGroup);
-
-        $splits          = count($selectedGroup['transactions']);
-        $keys            = array_keys($selectedGroup['transactions']);
-        $first           = $selectedGroup['transactions'][array_shift($keys)];
+        $selectedGroup                 = $enrichment->enrichSingle($selectedGroup);
+        $splits                        = count($selectedGroup['transactions']);
+        $keys                          = array_keys($selectedGroup['transactions']);
+        $first                         = $selectedGroup['transactions'][array_shift($keys)];
         unset($keys);
 
         if (null === $first) {
             throw new FireflyException('This transaction is broken :(.');
         }
-        $type            = (string) trans(sprintf('firefly.%s', $first['transaction_type_type']));
-        $title           = 1 === $splits ? $first['description'] : $selectedGroup['title'];
-        $subTitle        = sprintf('%s: "%s"', $type, $title);
+        $type                          = (string) trans(sprintf('firefly.%s', $first['transaction_type_type']));
+        $title                         = 1 === $splits ? $first['description'] : $selectedGroup['title'];
+        $subTitle                      = sprintf('%s: "%s"', $type, $title);
 
         // enrich
-        $enrichment      = new TransactionGroupEnrichment();
+        $enrichment                    = new TransactionGroupEnrichment();
         $enrichment->setUser($admin);
 
         /** @var array $selectedGroup */
-        $selectedGroup   = $enrichment->enrichSingle($selectedGroup);
+        $selectedGroup                 = $enrichment->enrichSingle($selectedGroup);
 
         /** @var TransactionGroupTransformer $transformer */
-        $transformer     = app(TransactionGroupTransformer::class);
-        $transformer->setParameters(new ParameterBag());
-        $groupArray      = $transformer->transformObject($transactionGroup);
+        $transformer                   = app(TransactionGroupTransformer::class);
+        $groupArray                    = $transformer->transformObject($transactionGroup);
 
         // do some calculations:
-        $amounts         = $this->getAmounts($selectedGroup);
-        $accounts        = $this->getAccounts($selectedGroup);
+        $amounts                       = $this->getAmounts($selectedGroup);
+        $accounts                      = $this->getAccounts($selectedGroup);
 
         foreach (array_keys($selectedGroup['transactions']) as $index) {
             $selectedGroup['transactions'][$index]['tags'] = $this->repository->getTagObjects(
@@ -135,15 +138,17 @@ final class ShowController extends Controller
             );
         }
         // get audit log entries:
-        $groupLogEntries = $this->aleRepository->getForObject($transactionGroup);
-        $logEntries      = [];
+        $groupLogEntries               = $this->aleRepository->getForObject($transactionGroup);
+        $logEntries                    = [];
         foreach ($selectedGroup['transactions'] as $journal) {
             $logEntries[$journal['transaction_journal_id']] = $this->aleRepository->getForId(TransactionJournal::class, $journal['transaction_journal_id']);
         }
 
-        $events          = $this->repository->getPiggyEvents($transactionGroup);
-        $attachments     = $this->repository->getAttachments($transactionGroup);
-        $links           = $this->repository->getLinks($transactionGroup);
+        $events                        = $this->repository->getPiggyEvents($transactionGroup);
+        $attachments                   = $this->repository->getAttachments($transactionGroup);
+        $links                         = $this->repository->getLinks($transactionGroup);
+
+        $selectedGroup['transactions'] = array_reverse($selectedGroup['transactions'], true);
 
         return view('transactions.show', [
             'transactionGroup' => $transactionGroup,

@@ -65,7 +65,7 @@ final class ShowController extends Controller
 
         // translations:
         $this->middleware(function ($request, $next) {
-            app('view')->share('mainTitleIcon', 'fa-credit-card');
+            app('view')->share('mainTitleIcon', 'bi-credit-card');
             app('view')->share('title', (string) trans('firefly.accounts'));
 
             $this->repository = app(AccountRepositoryInterface::class);
@@ -121,6 +121,7 @@ final class ShowController extends Controller
         $currency         = $accountCurrency ?? $this->primaryCurrency;
         $fStart           = $start->isoFormat($this->monthAndDayFormat);
         $fEnd             = $end->isoFormat($this->monthAndDayFormat);
+        $isLiability      = $this->repository->isLiability($account);
         $subTitle         = (string) trans('firefly.journals_in_period_for_account', ['name' => $account->name, 'start' => $fStart, 'end' => $fEnd]);
         $chartUrl         = route('chart.account.period', [$account->id, $start->format('Y-m-d'), $end->format('Y-m-d')]);
         $firstTransaction = $this->repository->oldestJournalDate($account) ?? $start;
@@ -161,7 +162,6 @@ final class ShowController extends Controller
         Log::debug('End collect transactions');
         $timer->stop('collection');
         $groups->setPath(route('accounts.show', [$account->id, $start->format('Y-m-d'), $end->format('Y-m-d')]));
-        $showAll          = false;
         $now              = now();
         if ($now->gt($end) || $now->lt($start)) {
             $now = $end;
@@ -173,11 +173,12 @@ final class ShowController extends Controller
 
         return view('accounts.show', [
             'account'      => $account,
-            'showAll'      => $showAll,
+            'showAll'      => false,
             'objectType'   => $objectType,
             'currency'     => $currency,
             'today'        => $today,
             'periods'      => $periods,
+            'isLiability'  => $isLiability,
             'subTitleIcon' => $subTitleIcon,
             'groups'       => $groups,
             'attachments'  => $attachments,
@@ -212,7 +213,8 @@ final class ShowController extends Controller
         $this->repository->getAccountCurrency($account);
         $start        = $this->repository->oldestJournalDate($account) ?? today(config('app.timezone'))->startOfMonth();
         $subTitleIcon = config('firefly.subIconsByIdentifier.'.$account->accountType->type);
-        $page         = (int) $request->get('page');
+        $page         = (int) $request->input('page');
+        $page         = clamp($page, 1, 2 ** 16);
         $pageSize     = (int) Preferences::get('listPageSize', 50)->data;
         $currency     = $this->repository->getAccountCurrency($account) ?? $this->primaryCurrency;
         $subTitle     = (string) trans('firefly.all_journals_for_account', ['name' => $account->name]);
@@ -222,7 +224,7 @@ final class ShowController extends Controller
 
         /** @var GroupCollectorInterface $collector */
         $collector    = app(GroupCollectorInterface::class);
-        $collector->setAccounts(new Collection()->push($account))->setLimit($pageSize)->setPage($page)->withAccountInformation()->withCategoryInformation();
+        $collector->setAccounts(new Collection()->push($account))->withAPIInformation()->setLimit($pageSize)->setPage($page)->withAccountInformation();
 
         // this search will not include transaction groups where this asset account (or liability)
         // is just part of ONE of the journals. To force this:

@@ -1,10 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 /*
  * BasicRequest.php
- * Copyright (c) 2025 james@firefly-iii.org
+ * Copyright (c) 2026 james@firefly-iii.org
  *
  * This file is part of Firefly III (https://github.com/firefly-iii).
  *
@@ -22,16 +20,18 @@ declare(strict_types=1);
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+declare(strict_types=1);
+
 namespace FireflyIII\Api\V1\Requests\Summary;
 
 use FireflyIII\Api\V1\Requests\AggregateFormRequest;
-use FireflyIII\Api\V1\Requests\DateRangeRequest;
 use FireflyIII\Api\V1\Requests\Models\TransactionCurrency\CurrencyCodeRequest;
+use FireflyIII\Api\V1\Requests\SameDateRangeRequest;
 
 class BasicRequest extends AggregateFormRequest
 {
     protected function getRequests(): array
     {
-        return [[DateRangeRequest::class, 'required'], CurrencyCodeRequest::class];
+        return [[SameDateRangeRequest::class, 'required'], CurrencyCodeRequest::class];
     }
 }

@@ -46,6 +46,7 @@ use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
@@ -97,13 +98,12 @@ final class LoginController extends Controller
         // the login attempts for this application. We'll key this by the username and
         // the IP address of the client making these requests into this application.
         if ($this->hasTooManyLoginAttempts($request)) {
-            Log::channel('audit')->warning(sprintf('Login for user "%s" was locked out.', $request->get($this->username())));
-            Log::error(sprintf('Login for user "%s" was locked out.', $request->get($this->username())));
+            Log::channel('audit')->warning(sprintf('Login for user "%s" was locked out.', $request->input($this->username())));
+            Log::error(sprintf('Login for user "%s" was locked out.', $request->input($this->username())));
             $this->fireLockoutEvent($request);
-            $seconds = $this->limiter()->availableIn($this->throttleKey($request));
+            $seconds = max($this->limiter()->availableIn($this->throttleKey($request)), 30);
+            sleep(5);
             $message = (string) trans('auth.throttle', ['seconds' => $seconds, 'minutes' => ceil($seconds / 60)]);
-            Log::error(sprintf('Will SLEEP for %d second(s).', $seconds));
-            sleep($seconds);
 
             throw new LockedOutException($message);
         }
@@ -120,7 +120,7 @@ final class LoginController extends Controller
 
         // Copied directly from AuthenticatesUsers, but with logging added:
         if ($this->attemptLogin($request)) {
-            Log::channel('audit')->info(sprintf('User "%s" has been logged in.', $request->get($this->username())));
+            Log::channel('audit')->info(sprintf('User "%s" has been logged in.', $request->input($this->username())));
             Log::debug(sprintf('Redirect after login is %s.', $this->redirectPath()));
 
             // if you just logged in, it can't be that you have a valid 2FA cookie.
@@ -132,7 +132,7 @@ final class LoginController extends Controller
             return $this->sendLoginResponse($request);
         }
         Log::warning('Login attempt failed.');
-        $username = (string) $request->get($this->username());
+        $username = (string) $request->input($this->username());
         $user     = $this->repository->findByEmail($username);
         if (!$user instanceof User) {
             // send event to owner.
@@ -147,7 +147,7 @@ final class LoginController extends Controller
         // to log in and redirect the user back to the login form. Of course, when this
         // user surpasses their maximum number of attempts they will get locked out.
         $this->incrementLoginAttempts($request);
-        Log::channel('audit')->warning(sprintf('Login failed. Attempt for user "%s" failed.', $request->get($this->username())));
+        Log::channel('audit')->warning(sprintf('Login failed. Attempt for user "%s" failed.', $request->input($this->username())));
 
         $this->sendFailedLoginResponse($request);
 
@@ -281,5 +281,10 @@ final class LoginController extends Controller
         Log::debug(sprintf('SafeURL is %s', $path));
 
         return $request->wantsJson() ? new JsonResponse([], 204) : redirect()->to($path);
+    }
+
+    protected function throttleKey(Request $request): string
+    {
+        return Str::transliterate($request->ip());
     }
 }

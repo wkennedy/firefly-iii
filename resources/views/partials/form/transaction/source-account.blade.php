@@ -1,0 +1,41 @@
+<div class="row mb-2">
+    <label :for="'source_' + index"
+           class="col-sm-1 col-form-label d-none d-sm-block">
+        <em title="{{ __('firefly.source_account') }}" class="bi bi-arrow-left"></em>
+    </label>
+    <div class="col-sm-10">
+        <template x-if="transaction.source_account.loading">
+            <span class="form-control-plaintext">
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">{{ __('firefly.thinking') }}</span>
+            </div>
+            </span>
+        </template>
+        <template x-if="!transaction.source_account.loading">
+        <div class="input-group">
+        <input type="text"
+               :class="{'is-invalid': transaction.errors.source_account.length > 0, 'form-control': true, 'ac-source': true}"
+               :id="'source_' + index"
+               x-model="transaction.source_account.alpine_name"
+               :data-index="index"
+               @keydown="keyUpFromSource"
+               x-bind:disabled="true===transaction.source_account.disabled || transaction.reconciled"
+               x-bind:readonly="true===transaction.source_account.disabled || transaction.reconciled"
+               @changed="changedSourceAccount"
+               placeholder="{{ __('firefly.source_account')  }}">
+            <button tabindex="-1" class="btn btn-outline-secondary" type="button" @click="clearSourceAccount(index)"><em class="bi bi-trash"></em></button>
+        </div>
+        </template>
+
+        <template x-if="true===transaction.source_account.disabled">
+            <div class="small form-control-feedback">
+                {{ __('firefly.disabled_split_account_src') }}
+            </div>
+        </template>
+        <template x-if="transaction.errors.source_account.length > 0">
+            <div class="invalid-feedback"
+                 x-text="transaction.errors.source_account[0]">
+            </div>
+        </template>
+    </div>
+</div>

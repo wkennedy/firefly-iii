@@ -1,0 +1,321 @@
+/*
+ * show.js
+ * Copyright (c) 2026 james@firefly-iii.org
+ *
+ * This file is part of Firefly III (https://github.com/firefly-iii).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import "../../boot/bootstrap.js";
+import sidebar from "../shared/sidebar.js";
+import dates from "../shared/dates.js";
+import Alpine from "@alpinejs/csp";
+import { getVariable } from "../../store/get-variable.js";
+import Put from "../../api/model/account/put.js";
+import Get from "../../api/model/account/get.js";
+import formatDate from "../../util/format-date.js";
+import formatMoney from "../../util/format-money.js";
+import i18next from "i18next";
+import { addDrag } from "../shared/drag-and-droppable-rows.js";
+import {
+    initFromLocalStorage,
+    initFromQueryParams,
+    sortableTable,
+    storeFilterAndSort,
+    updateHistory,
+    respondToSortChange,
+} from "../shared/sortable-tables.js";
+
+window.enableDates = true;
+
+let index = function () {
+    return {
+        // necessary for index
+        listPageSize: 50,
+        objectType: "invalid",
+        accounts: [],
+        page: 1,
+        totalPages: 1,
+        i18next: null,
+        anonymous: false,
+        loadingPage: true,
+        convertToPrimary: false,
+        active: true,
+        sums: {},
+        debts: {},
+        differences: {},
+
+        // functions
+        formatMoney: formatMoney,
+
+        // default settings for sortable tables.
+        storageKey: "",
+        defaultSortColumn: "order",
+        defaultSortDirection: "asc",
+
+        // variables necessary for sortable tables.
+        pageNavUrl: "./accounts/",
+        sortColumn: "order", // used in GET request. TODO needs change when doing multiple tables.
+        sortDirection: "asc", // used in GET request. TODO needs change when doing multiple tables.
+        filter: {}, // TODO needs change when doing multiple tables.
+
+        // sort functions, imported
+        updateHistory: updateHistory,
+        initFromLocalStorage: initFromLocalStorage,
+        initFromQueryParams: initFromQueryParams,
+        storeFilterAndSort: storeFilterAndSort,
+        respondToSortChange: respondToSortChange,
+        sortableTable: null,
+
+        init() {
+            // initialize sortable table.
+            this.initFromLocalStorage();
+            this.initFromQueryParams();
+
+            // create sortable table.
+            this.sortableTable = new sortableTable("main");
+
+            // prepare some variables. Has nothing to do with sortable table.
+            const address = window.location.href.split("?")[0].split("/");
+            this.objectType = address[address.length - 1].substring(0, 15);
+            this.storageKey = "accounts-" + this.objectType + (this.active ? "-active" : "-inactive");
+            this.defaultSortColumn =
+                "expense" === this.objectType || "revenue" === this.objectType ? "name" : this.defaultSortColumn;
+            this.i18next = i18next;
+            this.anonymous = window.store.get("anonymous");
+            this.pageNavUrl = "./accounts/" + this.objectType;
+            this.active = "inactive-accounts" !== address[address.length - 2];
+
+            // configure sortable table with final result (not filter).
+            this.sortableTable.sortColumn = this.defaultSortColumn;
+            this.sortableTable.sortDirection = this.defaultSortDirection;
+            this.sortableTable.storageKey = this.storageKey;
+            this.sortableTable.page = this.page;
+
+            // initialize sortable table.
+            this.sortableTable.init(this);
+
+            // watch for changes in the sortable table instructions.
+            document.addEventListener("sortable-table-sort-change", this.respondToSortChange.bind(this));
+            this.downloadObjects();
+
+            // respond to drag and drop.
+            getVariable("listPageSize").then((listPageSize) => {
+                this.listPageSize = listPageSize;
+                addDrag();
+                document.addEventListener("firefly-iii-drag-complete", (e) => {
+                    for (let i = 0; i < e.detail.length; i++) {
+                        if (Object.hasOwn(e.detail, i)) {
+                            let item = e.detail[i];
+                            if (item.order !== item.currentOrder) {
+                                // PUT new order to system.
+                                new Put().put({ order: item.order }, { id: item.id });
+
+                                // save new order as current order in the row.
+                                document
+                                    .querySelector(`tr[data-id="${item.id}"]`)
+                                    .setAttribute("data-current-order", item.order);
+                            }
+                        }
+                    }
+                });
+            });
+        },
+
+        prepareSumArrays(code) {
+            this.sums[code] = Object.hasOwn(this.sums, code) ? this.sums[code] : 0;
+            this.debts[code] = Object.hasOwn(this.debts, code) ? this.debts[code] : 0;
+            this.differences[code] = Object.hasOwn(this.differences, code) ? this.differences[code] : 0;
+        },
+        filterAmounts(account) {
+            // overrule some amounts, set them to zero when "this.anonymous" is true.
+            if (this.anonymous) {
+                account.attributes.balance_difference = "0";
+                account.attributes.current_balance = "0";
+                account.attributes.debt_amount = "0";
+                account.attributes.pc_balance_difference = "0";
+                account.attributes.pc_current_balance = "0";
+                account.attributes.pc_debt_amount = "0";
+            }
+            return account;
+        },
+        createParsedAndFloatingAmounts(account, code, prefix) {
+            let keys = ["balance_difference", "current_balance", "debt_amount"];
+            for (let i = 0; i < keys.length; i++) {
+                let key = keys[i];
+                account.attributes[prefix + key + "_formatted"] = formatMoney(
+                    account.attributes[prefix + key],
+                    code,
+                    true,
+                );
+                account.attributes[prefix + key + "_float"] = parseFloat(account.attributes[prefix + key]);
+            }
+            return account;
+        },
+        downloadObjects() {
+            this.sortableTable.loadingNewSort = true;
+            let sort =
+                "asc" === this.sortableTable.sortDirection
+                    ? this.sortableTable.sortColumn
+                    : "-" + this.sortableTable.sortColumn;
+            let start = window.store.get("start");
+            let end = window.store.get("end");
+            this.convertToPrimary = window.store.get("convert_to_primary");
+            new Get()
+                .list({
+                    active: this.active,
+                    sort: sort,
+                    page: this.page,
+                    type: this.objectType,
+                    start: start,
+                    filter: JSON.parse(JSON.stringify(this.filter)),
+                    end: end,
+                })
+                .then((response) => {
+                    const locale = window.store.get("locale");
+                    this.accounts = [];
+                    this.sums = {};
+                    this.debts = {};
+                    this.differences = {};
+
+                    this.totalPages = parseInt(response.data.meta.pagination.total_pages);
+                    for (let i = 0; i < response.data.data.length; i++) {
+                        if (Object.hasOwn(response.data.data, i)) {
+                            let current = this.filterAmounts(response.data.data[i]);
+                            let cc = current.attributes.currency_code;
+                            let pcc = current.attributes.primary_currency_code;
+                            this.prepareSumArrays(cc);
+                            this.prepareSumArrays(pcc);
+
+                            // add formatted amount property.
+                            current = this.createParsedAndFloatingAmounts(current, cc, "");
+                            current = this.createParsedAndFloatingAmounts(current, pcc, "pc_");
+                            //console.log(current);
+
+                            if (!this.convertToPrimary) {
+                                this.sums[cc] += current.attributes.current_balance_float;
+                                this.debts[cc] += current.attributes.debt_amount_float;
+                                this.differences[cc] += current.attributes.balance_difference_float;
+                            }
+                            if (this.convertToPrimary) {
+                                this.sums[pcc] += current.attributes.pc_current_balance_float;
+                                this.debts[pcc] += current.attributes.pc_debt_amount_float;
+                                this.differences[pcc] += current.attributes.pc_balance_difference_float;
+                            }
+                            let lastActivity = formatDate(
+                                current.attributes.last_activity,
+                                i18next.t("config.date_time_fns_short", { lng: locale }),
+                                locale,
+                            );
+
+                            let noLastActivity = false;
+                            if (null === current.attributes.last_activity) {
+                                lastActivity = i18next.t("firefly.never");
+                                noLastActivity = true;
+                            }
+                            let account = {
+                                id: parseInt(current.id),
+                                name: current.attributes.name,
+                                location: null !== current.attributes.longitude && null !== current.attributes.latitude,
+                                has_attachments: current.attributes.has_attachments,
+                                role: current.attributes.account_role,
+                                iban: this.addSpaces(current.attributes.iban),
+                                account_number: current.attributes.account_number,
+
+                                currency_id: parseInt(current.attributes.currency_id),
+                                primary_currency_id: parseInt(current.attributes.primary_currency_id),
+
+                                active: current.attributes.active,
+                                last_activity: lastActivity,
+                                no_last_activity: noLastActivity,
+
+                                current_balance: current.attributes.current_balance_formatted,
+                                current_balance_float: current.attributes.current_balance_float,
+                                pc_current_balance: current.attributes.pc_current_balance_formatted,
+                                pc_current_balance_float: current.attributes.pc_current_balance_float,
+
+                                // current_balance: '1',
+                                // current_balance_float: 2,
+                                // pc_current_balance: '3',
+                                // pc_current_balance_float: 4,
+
+                                balance_difference: current.attributes.balance_difference_formatted,
+                                balance_difference_float: current.attributes.balance_difference_float,
+                                pc_balance_difference: current.attributes.pc_balance_difference_formatted,
+                                pc_balance_difference_float: current.attributes.pc_balance_difference_float,
+
+                                current_debt: current.attributes.debt_amount_formatted,
+                                current_debt_float: current.attributes.debt_amount_float,
+                                pc_current_debt: current.attributes.pc_debt_amount_formatted,
+                                pc_current_debt_float: current.attributes.pc_debt_amount_float,
+
+                                liability_type: i18next.t("firefly.account_type_" + current.attributes.liability_type),
+                                liability_direction: i18next.t(
+                                    "firefly.liability_direction_" + current.attributes.liability_direction + "_short",
+                                ),
+                                liability_interest: current.attributes.interest,
+                                liability_interest_period: i18next
+                                    .t("firefly.interest_calc_" + current.attributes.interest_period)
+                                    .toLowerCase(),
+                            };
+                            this.accounts.push(account);
+                        }
+                    }
+                    // console.log(
+                    //     "Done downloading accounts.",
+                    //     JSON.parse(JSON.stringify(this.filter)),
+                    //     this.accounts.length,
+                    // );
+                    this.loadingPage = false;
+                    this.sortableTable.loadingNewSort = false;
+                    this.sortableTable.disableRefresh = false;
+                    if (0 === this.accounts.length && false === this.isFiltering) {
+                        document.querySelectorAll(".data-holder").forEach((el) => {
+                            el.classList.add("d-none");
+                        });
+                    }
+                });
+        },
+        addSpaces(iban) {
+            if (null === iban) {
+                return "";
+            }
+            return iban.match(/.{1,4}/g).join(" ");
+        },
+    };
+};
+
+const comps = {
+    index,
+    sidebar,
+    dates,
+};
+
+function loadPage(comps) {
+    Object.keys(comps).forEach((comp) => {
+        let data = comps[comp]();
+        Alpine.data(comp, () => data);
+    });
+    Alpine.start();
+}
+
+// wait for load until bootstrapped event is received.
+document.addEventListener("firefly-iii-bootstrapped", () => {
+    loadPage(comps);
+});
+// or is bootstrapped before event is triggered.
+if (window.bootstrapped) {
+    loadPage(comps);
+}

@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-/** global: token */
 var fixHelper = function (e, tr) {
     "use strict";
     var $originals = tr.children();
@@ -88,6 +87,24 @@ function duplicateRule(e) {
 
 $(function () {
       "use strict";
+
+    //   // basic trigger on collapse button.
+    // $('.collapse-button').click(function (e) {
+    //     var box = $(e.currentTarget).closest('.rules-card');
+    //     //box.toggleClass('collapsed-box');
+    //     var groupId = parseInt(box.data('group'));
+    //     var cookieName = 'rule-card-collapse-' + groupId;
+    //     if (box.hasClass('collapsed-card')) {
+    //         createCookie(cookieName, 'collapsed', 90);
+    //         console.log('set cookie collapsed');
+    //     } else {
+    //         createCookie(cookieName, 'expanded', 90);
+    //         console.log('set cookie expanded');
+    //     }
+    // });
+
+
+
       $('.group-rules').find('tbody').sortable(
           {
               helper: fixHelper,
@@ -100,64 +117,76 @@ $(function () {
       // show rule triggers
       $('.rule-triggers-show').click(function (e) {
           var obj = $(e.currentTarget);
-          $('.rule-trigger-list[data-id="' + obj.data('id') + '"]').removeClass('hidden');
-          $('.rule-triggers-show[data-id="' + obj.data('id') + '"]').addClass('hidden');
+          $('.rule-trigger-list[data-id="' + obj.data('id') + '"]').removeClass('d-none');
+          $('.rule-triggers-show[data-id="' + obj.data('id') + '"]').addClass('d-none');
       });
 
       $('.rule-trigger-list').each(function(i,v) {
           var obj = $(v);
           if(obj.data('count') > 2) {
-              obj.addClass('hidden');
-              $('.rule-triggers-show[data-id="' + obj.data('id') + '"]').removeClass('hidden');
+              obj.addClass('d-none');
+              $('.rule-triggers-show[data-id="' + obj.data('id') + '"]').removeClass('d-none');
           }
       });
     // show rule actions
     $('.rule-actions-show').click(function (e) {
         var obj = $(e.currentTarget);
-        $('.rule-action-list[data-id="' + obj.data('id') + '"]').removeClass('hidden');
-        $('.rule-actions-show[data-id="' + obj.data('id') + '"]').addClass('hidden');
+        $('.rule-action-list[data-id="' + obj.data('id') + '"]').removeClass('d-none');
+        $('.rule-actions-show[data-id="' + obj.data('id') + '"]').addClass('d-none');
     });
 
     $('.rule-action-list').each(function(i,v) {
         var obj = $(v);
         if(obj.data('count') > 1) {
-            obj.addClass('hidden');
-            $('.rule-actions-show[data-id="' + obj.data('id') + '"]').removeClass('hidden');
+            obj.addClass('d-none');
+            $('.rule-actions-show[data-id="' + obj.data('id') + '"]').removeClass('d-none');
         }
     });
 
       $('.move-group').click(moveRuleGroup);
       $('.duplicate-rule').click(duplicateRule);
 
-      $('.rules-box').each(function (i, v) {
+      $('.rules-card').each(function (i, v) {
           var box = $(v);
           var groupId = box.data('group');
           var cookieName = 'rule-box-collapse-' + groupId;
           if ('collapsed' === readCookie(cookieName)) {
-              box.addClass('collapsed-box');
-              console.log('Box ' + groupId + ' is collapsed');
+              box.addClass('collapsed-card');
+              console.log('Card ' + groupId + ' is collapsed');
               return;
           }
-          console.log('Box ' + groupId + ' is not collapsed');
+          console.log('Card ' + groupId + ' is not collapsed');
       });
 
-      $('.rules-box').on('expanded.boxwidget', function (e) {
-          var box = $(e.currentTarget);
-          var groupId = box.data('group');
-          var cookieName = 'rule-box-collapse-' + groupId;
-          createCookie(cookieName, 'expanded', 90);
-          //console.log('Box ' + box.data('group') + ' is now expanded.');
-          //alert('hi!')
+      document.querySelectorAll('.rules-card').forEach(function (i) {
+          i.addEventListener('collapsed.lte.card-widget', function (e) {
+              var box = $(e.currentTarget);
+              console.log('Card ' + box.data('group') + ' is now collapsed.');
+              var groupId = box.data('group');
+              var cookieName = 'rule-box-collapse-' + groupId;
+              createCookie(cookieName, 'collapsed', 90);
+              //alert('ho!')
+          });
+          i.addEventListener('expanded.lte.card-widget', function (e) {
+              var box = $(e.currentTarget);
+              console.log('Card ' + box.data('group') + ' is now expanded.');
+              var groupId = box.data('group');
+              var cookieName = 'rule-box-collapse-' + groupId;
+              createCookie(cookieName, 'expanded', 90);
+              //alert('hi!')
+          });
       });
 
-      $('.rules-box').on('collapsed.boxwidget', function (e) {
-          var box = $(e.currentTarget);
-          var groupId = box.data('group');
-          var cookieName = 'rule-box-collapse-' + groupId;
-          createCookie(cookieName, 'collapsed', 90);
-          //console.log('Box ' + box.data('group') + ' is now collapsed.');
-          //alert('ho!')
-      });
+    // document.getElementById('rules-card-1').addEventListener('expanded.lte.card-widget', function (e) {
+    //     console.log(e);
+    // });
+    //   $('.rules-card').on('expanded.lte.card-widget', function (e) {
+      //
+      // });
+      //
+      // $('.rules-card').on('collapsed.lte.card-widget', function (e) {
+      //
+      // });
 
       //collapsed-box
 
@@ -176,7 +205,7 @@ function testRuleTriggers(e) {
         icon = $('span', obj);
     }
     // change icon:
-    icon.addClass('fa-spinner fa-spin').removeClass('fa-flask');
+    icon.addClass('bi bi-hourglass').removeClass('bi-flask');
 
     var modal = $("#testTriggerModal");
     // respond to modal:
@@ -194,9 +223,9 @@ function testRuleTriggers(e) {
         // Show warning if appropriate
         if (data.warning) {
             modal.find(".transaction-warning .warning-contents").text(data.warning);
-            modal.find(".transaction-warning").removeClass('hidden');
+            modal.find(".transaction-warning").removeClass('d-none');
         } else {
-            modal.find(".transaction-warning").addClass('hidden');
+            modal.find(".transaction-warning").addClass('d-none');
         }
 
         // Show the modal dialog
@@ -210,7 +239,7 @@ function testRuleTriggers(e) {
 }
 
 function disableRuleSpinners() {
-    $('i.test_rule_triggers').removeClass('fa-spin fa-spinner').addClass('fa-flask');
+    $('i.test_rule_triggers').removeClass('bi bi-hourglass').addClass('bi-flask');
 }
 
 

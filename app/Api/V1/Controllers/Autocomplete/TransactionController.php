@@ -25,22 +25,25 @@ declare(strict_types=1);
 namespace FireflyIII\Api\V1\Controllers\Autocomplete;
 
 use FireflyIII\Api\V1\Controllers\Controller;
-use FireflyIII\Api\V1\Requests\Autocomplete\AutocompleteApiRequest;
 use FireflyIII\Api\V1\Requests\Autocomplete\AutocompleteTransactionApiRequest;
 use FireflyIII\Enums\UserRoleEnum;
 use FireflyIII\Models\TransactionGroup;
 use FireflyIII\Models\TransactionJournal;
 use FireflyIII\Repositories\Journal\JournalRepositoryInterface;
 use FireflyIII\Repositories\TransactionGroup\TransactionGroupRepositoryInterface;
+use FireflyIII\Support\Facades\Amount;
+use FireflyIII\Support\Facades\Steam;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Override;
 
 /**
  * Class TransactionController
  */
 final class TransactionController extends Controller
 {
+    #[Override]
     protected array $acceptedRoles = [UserRoleEnum::READ_ONLY];
     private TransactionGroupRepositoryInterface $groupRepository;
     private JournalRepositoryInterface $repository;
@@ -85,12 +88,13 @@ final class TransactionController extends Controller
         return response()->api($array);
     }
 
-    public function transactionsWithID(AutocompleteApiRequest $request): JsonResponse
+    public function transactionsWithMeta(AutocompleteTransactionApiRequest $request): JsonResponse
     {
+        $query  = $request->attributes->get('query');
         $result = new Collection();
-        if (is_numeric($request->attributes->get('query'))) {
+        if (is_numeric($query)) {
             // search for group, not journal.
-            $firstResult = $this->groupRepository->find((int) $request->attributes->get('query'));
+            $firstResult = $this->groupRepository->find((int) $query);
             if ($firstResult instanceof TransactionGroup) {
                 // group may contain multiple journals, each a result:
                 foreach ($firstResult->transactionJournals as $journal) {
@@ -98,8 +102,8 @@ final class TransactionController extends Controller
                 }
             }
         }
-        if (!is_numeric($request->attributes->get('query'))) {
-            $result = $this->repository->searchJournalDescriptions($request->attributes->get('query'), $request->attributes->get('limit'));
+        if (!is_numeric($query)) {
+            $result = $this->repository->searchJournalDescriptions($query, $request->attributes->get('limit'));
         }
 
         // limit and unique
@@ -107,11 +111,15 @@ final class TransactionController extends Controller
 
         /** @var TransactionJournal $journal */
         foreach ($result as $journal) {
-            $array[] = [
+            $currency = Amount::getCurrencyFromJournal($journal);
+            $array[]  = [
                 'id'                   => (string) $journal->id,
                 'transaction_group_id' => (string) $journal->transaction_group_id,
-                'name'                 => sprintf('#%d: %s', $journal->transaction_group_id, $journal->description),
-                'description'          => sprintf('#%d: %s', $journal->transaction_group_id, $journal->description),
+                'name'                 => $journal->description,
+                'description'          => $journal->description,
+                'date'                 => $journal->date,
+                'currency_code'        => $currency->code,
+                'amount'               => Steam::positive(Amount::getAmountFromJournalObject($journal)),
             ];
         }
 

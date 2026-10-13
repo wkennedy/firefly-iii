@@ -73,7 +73,7 @@ final class IndexController extends Controller
 
         $this->middleware(function ($request, $next) {
             app('view')->share('title', (string) trans('firefly.budgets'));
-            app('view')->share('mainTitleIcon', 'fa-pie-chart');
+            app('view')->share('mainTitleIcon', 'bi-pie-chart');
             $this->repository         = app(BudgetRepositoryInterface::class);
             $this->opsRepository      = app(OperationsRepositoryInterface::class);
             $this->abRepository       = app(AvailableBudgetRepositoryInterface::class);
@@ -100,17 +100,8 @@ final class IndexController extends Controller
         // collect some basic vars:
         $range            = Navigation::getViewRange(true);
         $isCustomRange    = session('is_custom_range', false);
-        if (false === $isCustomRange) {
-            $start ??= session('start', today(config('app.timezone'))->startOfMonth());
-            $end   ??= Navigation::endOfPeriod($start, $range);
-        }
-
-        // overrule start and end if necessary:
-        if (true === $isCustomRange) {
-            $start ??= session('start', today(config('app.timezone'))->startOfMonth());
-            $end   ??= session('end', today(config('app.timezone'))->endOfMonth());
-        }
-
+        $start ??= Navigation::startOfPeriod(session('start', today(config('app.timezone'))), $range);
+        $end   ??= Navigation::endOfPeriod($start, $range);
         $currencies       = $this->currencyRepository->get();
         $budgeted         = '0';
         $spent            = '0';
@@ -128,9 +119,6 @@ final class IndexController extends Controller
         $availableBudgets = $this->getAllAvailableBudgets($start, $end);
         // get all active budgets:
         $budgets          = $this->getAllBudgets($start, $end, $currencies, $this->primaryCurrency);
-
-        //        echo '<pre>';
-        //        var_dump($budgets[0]);exit;
         $sums             = $this->getSums($budgets);
 
         // get budgeted for default currency:
@@ -165,7 +153,7 @@ final class IndexController extends Controller
     public function reorder(Request $request, BudgetRepositoryInterface $repository): JsonResponse
     {
         $this->abRepository->cleanup();
-        $budgetIds = $request->get('budgetIds');
+        $budgetIds = $request->input('budgetIds');
 
         foreach ($budgetIds as $index => $budgetId) {
             $budgetId = (int) $budgetId;

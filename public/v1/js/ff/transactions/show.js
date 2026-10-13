@@ -20,71 +20,49 @@
 
 $(function () {
     "use strict";
-    $('.link-modal').click(getLinkModal);
-    $('.clone-transaction').click(cloneTransaction);
-    $('.clone-transaction-and-edit').click(cloneTransactionAndEdit);
-    $('#linkJournalModal').on('shown.bs.modal', function () {
-        makeAutoComplete();
-    })
-    $('[data-toggle="tooltip"]').tooltip();
+    $('.clone-transaction').on('click', cloneTransaction);
+    $('.clone-transaction-and-edit').on('click', cloneTransactionAndEdit);
+    // $('[data-toggle="tooltip"]').tooltip();
+
+    $('.switch-link').on('click', switchLink);
+    $('.reconcile-button').on('click', unreconcile);
+
 });
 
-function getLinkModal(e) {
-    var button = $(e.currentTarget);
-    var journalId = parseInt(button.data('journal'));
-    var url = modalDialogURL.replace('%JOURNAL%', journalId);
-    console.log(url);
-    $.get(url).done(function (data) {
-        $('#linkJournalModal').html(data).modal('show');
 
+function unreconcile(e) {
+    e.preventDefault();
+    var obj = $(e.currentTarget);
+    $.post(obj.attr('href'), {
+        _token: token
+    }).done(function () {
+        location.reload();
     }).fail(function () {
-        alert('Could not load the data to link journals. Sorry :(');
-        button.prop('disabled', true);
+        console.error('I failed :(');
     });
 
-    return false;
+    return false
 }
 
-function makeAutoComplete() {
-
-    // input link-journal
-    var source = new Bloodhound({
-        datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
-        queryTokenizer: Bloodhound.tokenizers.whitespace,
-        prefetch: {
-            url: acURL + '?uid=' + uid,
-            filter: function (list) {
-                return $.map(list, function (item) {
-                    return item;
-                });
-            }
-        },
-        remote: {
-            url: acURL + '?query=%QUERY&uid=' + uid,
-            wildcard: '%QUERY',
-            filter: function (list) {
-                return $.map(list, function (item) {
-                    return item;
-                });
-            }
-        }
+function switchLink(e) {
+    e.preventDefault();
+    var obj = $(e.currentTarget);
+    $.post(switchLinkUrl, {
+        _token: token,
+        id: obj.data('id')
+    }).done(function () {
+        location.reload();
+    }).fail(function () {
+        console.error('I failed :(');
     });
-    source.initialize();
-    $('.link-journal').typeahead({hint: true, highlight: true,}, {source: source, displayKey: 'name', autoSelect: false})
-        .on('typeahead:select', selectedJournal);
-}
 
-function selectedJournal(event, journal) {
-    $('#journal-selector').hide();
-    $('#journal-selection').show();
-    $('#selected-journal').html('<a href="' + groupURL.replace('%GROUP%', journal.transaction_group_id) + '">' + journal.description + '</a>').show();
-    $('input[name="opposing"]').val(journal.id);
+    return false
 }
 
 function cloneTransaction(e) {
+    e.preventDefault();
     var button = $(e.currentTarget);
     var groupId = parseInt(button.data('id'));
-
     $.post(cloneGroupUrl, {
         id: groupId
     }).done(function (data) {
@@ -97,6 +75,7 @@ function cloneTransaction(e) {
 }
 
 function cloneTransactionAndEdit(e) {
+    e.preventDefault();
     var button = $(e.currentTarget);
     var groupId = parseInt(button.data('id'));
 

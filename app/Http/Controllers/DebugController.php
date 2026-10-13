@@ -30,6 +30,7 @@ use FireflyIII\Enums\AccountTypeEnum;
 use FireflyIII\Enums\TransactionTypeEnum;
 use FireflyIII\Exceptions\FireflyException;
 use FireflyIII\Http\Middleware\IsDemoUser;
+use FireflyIII\Models\Configuration;
 use FireflyIII\Models\PeriodStatistic;
 use FireflyIII\Models\TransactionType;
 use FireflyIII\Repositories\PiggyBank\PiggyBankRepositoryInterface;
@@ -39,6 +40,7 @@ use FireflyIII\Support\Facades\Preferences;
 use FireflyIII\Support\Facades\Steam;
 use FireflyIII\Support\Http\Controllers\GetConfigurationData;
 use FireflyIII\Support\Models\AccountBalanceCalculator;
+use FireflyIII\Support\System\IsOldVersion;
 use FireflyIII\User;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\RedirectResponse;
@@ -65,6 +67,7 @@ use const PHP_SAPI;
 final class DebugController extends Controller
 {
     use GetConfigurationData;
+    use IsOldVersion;
 
     /**
      * DebugController constructor.
@@ -104,8 +107,11 @@ final class DebugController extends Controller
      *
      * @throws FireflyException
      */
-    public function flush(Request $request): RedirectResponse
+    public function flush(Request $request): View
     {
+        if ($this->hasNoTables() || $this->isOldVersionInstalled()) {
+            throw new FireflyException('This is not the moment.');
+        }
         Preferences::mark();
         $request->session()->forget(['start', 'end', '_previous', 'viewRange', 'range', 'is_custom_range', 'temp-mfa-secret', 'temp-mfa-codes']);
 
@@ -122,15 +128,11 @@ final class DebugController extends Controller
             AccountBalanceCalculator::recalculateAll(false);
         }
 
-        try {
-            Artisan::call('twig:clean');
-        } catch (Exception $e) { // intentional generic exception
-            throw new FireflyException($e->getMessage(), 0, $e);
-        }
-
         Artisan::call('view:clear');
 
-        return redirect(route('index'));
+        return view('flush');
+
+        // return redirect(route('index'));
     }
 
     /**
@@ -145,23 +147,26 @@ final class DebugController extends Controller
         $table      = $this->generateTable();
         $table      = str_replace(["\n", "\t", '  '], '', $table);
         $now        = now(config('app.timezone'))->format('Y-m-d H:i:s');
-
-        // get latest log file:
-        $logger     = Log::driver();
-        // PHPstan doesn't recognize the method because of its polymorphic nature.
-        $handlers   = $logger->getHandlers();
         $logContent = '';
-        foreach ($handlers as $handler) {
-            if ($handler instanceof RotatingFileHandler) {
-                $logFile = $handler->getUrl();
-                if (null !== $logFile && file_exists($logFile)) {
-                    $logContent = file_get_contents($logFile);
+
+        if (auth()->check() && auth()->user()->hasRole('owner')) {
+            // get latest log file:
+            $logger   = Log::driver();
+            // PHPstan doesn't recognize the method because of its polymorphic nature.
+            $handlers = $logger->getHandlers();
+
+            foreach ($handlers as $handler) {
+                if ($handler instanceof RotatingFileHandler) {
+                    $logFile = $handler->getUrl();
+                    if (null !== $logFile && file_exists($logFile)) {
+                        $logContent = file_get_contents($logFile);
+                    }
                 }
             }
-        }
-        if ('' !== $logContent) {
-            // last few lines
-            $logContent = 'Truncated from this point <----|'.substr($logContent, -16_384);
+            if ('' !== $logContent) {
+                // last few lines
+                $logContent = 'Truncated from this point <----|'.substr($logContent, -16_384);
+            }
         }
 
         return view('debug', ['table' => $table, 'now' => $now, 'logContent' => $logContent]);
@@ -176,7 +181,7 @@ final class DebugController extends Controller
         /** @var iterable $routes */
         $routes = Route::getRoutes();
 
-        if ('true' === $request->get('api')) {
+        if ('true' === $request->input('api')) {
             $collection = [];
             $i          = 0;
 
@@ -290,16 +295,30 @@ final class DebugController extends Controller
 
     private function getAppInfo(): array
     {
-        $userGuard      = config('auth.defaults.guard');
+        $userGuard = config('auth.defaults.guard');
 
-        $config         = AppConfiguration::get('last_rt_job', 0);
-        $lastTime       = (int) $config->data;
-        $lastCronjob    = 'never';
-        $lastCronjobAgo = 'never';
-        if ($lastTime > 0) {
-            $carbon         = Carbon::createFromTimestamp($lastTime);
-            $lastCronjob    = $carbon->format('Y-m-d H:i:s');
-            $lastCronjobAgo = $carbon->locale('en')->diffForHumans();
+        $config    = AppConfiguration::get('last_rt_job', 0);
+        // last_rt_job_1
+        $configs   = AppConfiguration::getByPrefix('last_rt_job');
+        $cronJobs  = [];
+
+        /** @var Configuration $item */
+        foreach ($configs as $item) {
+            if ('last_rt_job' === $item->name) {
+                continue;
+            }
+            $parts  = explode('_', $item->name);
+            $userId = (int) $parts[count($parts) - 1];
+            $time   = (int) $config->data;
+            if ($time > 0) {
+                $carbon      = Carbon::createFromTimestamp($time);
+                $lastCronjob = $carbon->format('Y-m-d H:i:s');
+                $cronJobs[]  = [
+                    'user'         => $userId,
+                    'last_run'     => $lastCronjob,
+                    'last_run_ago' => Steam::secondsAsTime((int) $carbon->diffInSeconds(now(config('app.timezone')))),
+                ];
+            }
         }
 
         return [
@@ -309,14 +328,13 @@ final class DebugController extends Controller
             'default_locale'     => (string) config('firefly.default_locale'),
             'remote_header'      => 'remote_user_guard' === $userGuard ? config('auth.guard_header') : 'N/A',
             'remote_mail_header' => 'remote_user_guard' === $userGuard ? config('auth.guard_email') : 'N/A',
-            'stateful_domains'   => implode(', ', config('sanctum.stateful')),
-
+            // 'stateful_domains'   => implode(', ', config('sanctum.stateful')),
+            'cron_jobs'          => $cronJobs,
             // the dates for the cron job are based on the recurring cron job's times.
             // any of the cron jobs will do, they always run at the same time.
             // but this job is the oldest, so the biggest chance it ran once
-
-            'last_cronjob'       => $lastCronjob,
-            'last_cronjob_ago'   => $lastCronjobAgo,
+            //            'last_cronjob'       => $lastCronjob,
+            //            'last_cronjob_ago'   => $lastCronjobAgo,
         ];
     }
 
@@ -461,6 +479,7 @@ final class DebugController extends Controller
             'build_time'      => config('firefly.build_time'),
             'build_time_nice' => Carbon::parse(config('firefly.build_time'), 'Europe/Amsterdam')->setTimezone('Europe/Amsterdam')->format('Y-m-d H:i:s e'),
             'uname'           => php_uname('m'),
+            'installation_id' => AppConfiguration::get('installation_id', '(no ID)')->data,
             'interface'       => PHP_SAPI,
             'bits'            => PHP_INT_SIZE * 8,
             'bcscale'         => bcscale(),

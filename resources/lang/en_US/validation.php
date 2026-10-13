@@ -23,11 +23,15 @@
 declare(strict_types=1);
 
 return [
+    'no_auth_present'                 => 'Looks like you\'re not authenticated',
+    'unique_currency_symbol'          => 'The currency symbol is already in use.',
+    'bad_url_parts'                   => 'The redirect URL is invalid.',
     'verifying_password'              => 'Verifying password...',
     'invalid_account_list'            => 'Invalid account type list entry ":value"',
     'invalid_transaction_type_list'   => 'Invalid transaction type list',
     'limit_exists'                    => 'There is already a budget limit (amount) for this budget and currency in the given period.',
     'invalid_sort_instruction'        => 'The sort instruction is invalid for an object of type ":object".',
+    'no_filter_instructions'          => 'The filter instruction is invalid for an object of type ":object".',
     'invalid_sort_instruction_index'  => 'The sort instruction at index #:index is invalid for an object of type ":object".',
     'no_sort_instructions'            => 'There are no sort instructions defined for an object of type ":object".',
     'webhook_budget_info'             => 'Cannot deliver budget information for transaction related webhooks.',

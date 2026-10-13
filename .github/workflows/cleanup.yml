@@ -7,7 +7,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '0 1 * * *'
+    - cron: "0 1 * * *"
   workflow_dispatch:
 jobs:
   prune:
@@ -61,8 +61,8 @@ jobs:
               'cleanup.yml',
               'close-duplicates.yml',
               'closed-issues.yml',
-              'issues-reply-old-versions.yml',
               'depsreview.yml',
+              'issues-reply-old-versions.yml',
               'label-actions.yml',
               'lock.yml',
               'release.yml',

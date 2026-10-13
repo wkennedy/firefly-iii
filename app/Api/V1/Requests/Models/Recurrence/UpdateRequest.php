@@ -97,7 +97,7 @@ class UpdateRequest extends FormRequest
             'nr_of_repetitions'                    => ['nullable', 'numeric', 'min:1', 'max:255'],
 
             'repetitions.*.type'                   => 'in:daily,weekly,ndom,monthly,yearly',
-            'repetitions.*.moment'                 => ['min:0', 'max:10', 'numeric'],
+            'repetitions.*.moment'                 => ['nullable', 'string', 'min:0', 'max:10'],
             'repetitions.*.skip'                   => ['nullable', 'numeric', 'min:0', 'max:31'],
             'repetitions.*.weekend'                => ['nullable', 'numeric', 'min:1', 'max:4'],
 
@@ -120,7 +120,7 @@ class UpdateRequest extends FormRequest
             'transactions.*.category_name'         => ['min:1', 'max:255', 'nullable'],
             'transactions.*.piggy_bank_id'         => ['nullable', 'numeric', 'mustExist:piggy_banks,id', new BelongsUser()],
             'transactions.*.piggy_bank_name'       => ['min:1', 'max:255', 'nullable', new BelongsUser()],
-            'transactions.*.tags'                  => ['nullable', 'min:1', 'max:255'],
+            'transactions.*.tags'                  => ['nullable', 'min:0', 'max:255'],
         ];
     }
 

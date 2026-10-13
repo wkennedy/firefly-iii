@@ -40,6 +40,7 @@ use FireflyIII\Repositories\Budget\BudgetRepositoryInterface;
 use FireflyIII\Repositories\Budget\OperationsRepositoryInterface;
 use FireflyIII\Repositories\Currency\CurrencyRepositoryInterface;
 use FireflyIII\Support\Facades\Amount;
+use FireflyIII\Support\Facades\Navigation;
 use FireflyIII\Support\Http\Api\ExchangeRateConverter;
 use FireflyIII\Support\Report\Summarizer\TransactionSummarizer;
 use FireflyIII\User;
@@ -52,6 +53,7 @@ use Illuminate\Support\Facades\Log;
  */
 final class BasicController extends Controller
 {
+    protected array $acceptedRoles = [];
     private AvailableBudgetRepositoryInterface $abRepository;
     private AccountRepositoryInterface $accountRepository;
     private BillRepositoryInterface $billRepository;
@@ -239,7 +241,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatAnything($currency, $sums[$currencyId]['sum'] ?? '0', false),
-                'local_icon'              => 'balance-scale',
                 'sub_title'               => Amount::formatAnything($currency, $expenses[$currencyId]['sum'] ?? '0', false)
                     .' + '
                     .Amount::formatAnything($currency, $incomes[$currencyId]['sum'] ?? '0', false),
@@ -253,7 +254,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatAnything($currency, $expenses[$currencyId]['sum'] ?? '0', false),
-                'local_icon'              => 'balance-scale',
                 'sub_title'               => '',
             ];
             $return[] = [
@@ -265,7 +265,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatAnything($currency, $incomes[$currencyId]['sum'] ?? '0', false),
-                'local_icon'              => 'balance-scale',
                 'sub_title'               => '',
             ];
         }
@@ -281,7 +280,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatAnything($currency, '0', false),
-                'local_icon'              => 'balance-scale',
                 'sub_title'               => Amount::formatAnything($currency, '0', false).' + '.Amount::formatAnything($currency, '0', false),
             ];
             $return[] = [
@@ -293,7 +291,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatAnything($currency, '0', false),
-                'local_icon'              => 'balance-scale',
                 'sub_title'               => '',
             ];
             $return[] = [
@@ -305,7 +302,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatAnything($currency, '0', false),
-                'local_icon'              => 'balance-scale',
                 'sub_title'               => '',
             ];
         }
@@ -321,9 +317,16 @@ final class BasicController extends Controller
         Log::debug(sprintf('Now in getLeftToSpendInfo("%s", "%s")', $start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')));
         $return     = [];
         $today      = today(config('app.timezone'));
-        $available  = $this->abRepository->getAvailableBudgetWithCurrency($start, $end);
+
+        // to get the right available budget, correct the user's view period to whatever makes most sense (see als the "budget" page)
+        // and use that instead.
+        $range      = Navigation::getViewRange(true);
+        $abStart    = Navigation::startOfPeriod($start, $range);
+        $abEnd      = Navigation::endOfPeriod($abStart, $range);
+
+        $available  = $this->abRepository->getAvailableBudgetWithCurrency($abStart, $abEnd);
         $budgets    = $this->budgetRepository->getActiveBudgets();
-        $spent      = $this->opsRepository->sumExpenses($start, $end, null, $budgets, null, true);
+        $spent      = $this->opsRepository->sumExpenses($abStart, $abEnd, null, $budgets, null, true);
         $days       = (int) $today->diffInDays($end, true) + 1;
         $currencies = [];
 
@@ -346,7 +349,6 @@ final class BasicController extends Controller
                     $availableBudget,
                     false
                 ),
-                'local_icon'              => 'money',
                 'sub_title'               => Amount::formatFlat(
                     $currencies[$currencyId]->symbol,
                     $currencies[$currencyId]->decimal_places,
@@ -382,11 +384,11 @@ final class BasicController extends Controller
                 'currency_symbol'         => $row['currency_symbol'],
                 'currency_decimal_places' => $row['currency_decimal_places'],
                 'value_parsed'            => Amount::formatFlat($row['currency_symbol'], $row['currency_decimal_places'], $leftToSpend, false),
-                'local_icon'              => 'money',
                 'sub_title'               => Amount::formatFlat($row['currency_symbol'], $row['currency_decimal_places'], $perDay, false),
             ];
         }
         unset($leftToSpend);
+        // in this case we DO use the original start and end date.
         if (0 === count($return)) {
             $days  = (int) $start->diffInDays($end, true) + 1;
             // a small trick to get every expense in this period, regardless of budget.
@@ -412,7 +414,6 @@ final class BasicController extends Controller
                     'currency_symbol'         => $row['currency_symbol'],
                     'currency_decimal_places' => $row['currency_decimal_places'],
                     'value_parsed'            => Amount::formatFlat($row['currency_symbol'], $row['currency_decimal_places'], $spentInCurrency, false),
-                    'local_icon'              => 'money',
                     'sub_title'               => Amount::formatFlat($row['currency_symbol'], $row['currency_decimal_places'], $perDay, false),
                 ];
             }
@@ -431,7 +432,6 @@ final class BasicController extends Controller
             //                'currency_symbol'         => $currency->symbol,
             //                'currency_decimal_places' => $currency->decimal_places,
             //                'value_parsed'            => Amount::formatFlat($currency->symbol, $currency->decimal_places, '0', false),
-            //                'local_icon'              => 'money',
             //                'sub_title'               => Amount::formatFlat(
             //                    $currency->symbol,
             //                    $currency->decimal_places,
@@ -488,7 +488,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $data['currency_symbol'],
                 'currency_decimal_places' => $data['currency_decimal_places'],
                 'value_parsed'            => Amount::formatFlat($data['currency_symbol'], $data['currency_decimal_places'], $data['balance'], false),
-                'local_icon'              => 'line-chart',
                 'sub_title'               => '',
             ];
         }
@@ -502,7 +501,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $this->primaryCurrency->symbol,
                 'currency_decimal_places' => $this->primaryCurrency->decimal_places,
                 'value_parsed'            => Amount::formatFlat($this->primaryCurrency->symbol, $this->primaryCurrency->decimal_places, '0', false),
-                'local_icon'              => 'line-chart',
                 'sub_title'               => '',
             ];
         }
@@ -593,10 +591,11 @@ final class BasicController extends Controller
                 'currency_symbol'         => $info['symbol'],
                 'currency_decimal_places' => $info['decimal_places'],
                 'value_parsed'            => Amount::formatFlat($info['symbol'], $info['decimal_places'], $amount, false),
-                'local_icon'              => 'check',
                 'sub_title'               => '',
             ];
+            unset($amount);
         }
+        unset($info);
 
         /**
          * @var array $info
@@ -612,15 +611,15 @@ final class BasicController extends Controller
                 'currency_symbol'         => $info['symbol'],
                 'currency_decimal_places' => $info['decimal_places'],
                 'value_parsed'            => Amount::formatFlat($info['symbol'], $info['decimal_places'], $amount, false),
-                'local_icon'              => 'calendar-o',
                 'sub_title'               => '',
             ];
+            unset($amount);
         }
+        unset($info);
         Log::debug(sprintf('Done with getBillInformation("%s", "%s")', $start->format('Y-m-d'), $end->format('Y-m-d-')));
 
         if (0 === count($return)) {
             $currency = $this->primaryCurrency;
-            unset($info, $amount);
 
             $return[] = [
                 'key'                     => sprintf('bills-paid-in-%s', $currency->code),
@@ -631,7 +630,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatFlat($currency->symbol, $currency->decimal_places, '0', false),
-                'local_icon'              => 'check',
                 'sub_title'               => '',
             ];
             $return[] = [
@@ -643,7 +641,6 @@ final class BasicController extends Controller
                 'currency_symbol'         => $currency->symbol,
                 'currency_decimal_places' => $currency->decimal_places,
                 'value_parsed'            => Amount::formatFlat($currency->symbol, $currency->decimal_places, '0', false),
-                'local_icon'              => 'calendar-o',
                 'sub_title'               => '',
             ];
         }

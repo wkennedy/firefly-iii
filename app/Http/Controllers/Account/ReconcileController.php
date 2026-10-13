@@ -62,7 +62,7 @@ final class ReconcileController extends Controller
 
         // translations:
         $this->middleware(function ($request, $next) {
-            app('view')->share('mainTitleIcon', 'fa-credit-card');
+            app('view')->share('mainTitleIcon', 'bi-credit-card');
             app('view')->share('title', (string) trans('firefly.accounts'));
             $this->repository   = app(JournalRepositoryInterface::class);
             $this->accountRepos = app(AccountRepositoryInterface::class);
@@ -143,6 +143,9 @@ final class ReconcileController extends Controller
         $transactionsUrl = route('accounts.reconcile.transactions', [$account->id, '%start%', '%end%']);
         $overviewUrl     = route('accounts.reconcile.overview', [$account->id, '%start%', '%end%']);
         $indexUrl        = route('accounts.reconcile', [$account->id, '%start%', '%end%']);
+        $transactionsUrl = str_replace('%25', '%', $transactionsUrl);
+        $overviewUrl     = str_replace('%25', '%', $overviewUrl);
+        $indexUrl        = str_replace('%25', '%', $indexUrl);
         $objectType      = 'asset';
 
         return view('accounts.reconcile.index', [

@@ -26,6 +26,7 @@ namespace FireflyIII\Console\Commands\Upgrade;
 
 use FireflyIII\Console\Commands\ShowsFriendlyMessages;
 use FireflyIII\Support\Facades\AppConfiguration;
+use FireflyIII\Support\System\GeneratesInstallationId;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Safe\Exceptions\InfoException;
@@ -40,6 +41,7 @@ try {
 
 class UpgradesDatabase extends Command
 {
+    use GeneratesInstallationId;
     use ShowsFriendlyMessages;
 
     protected $description = 'Upgrades the database to the latest version.';
@@ -52,21 +54,21 @@ class UpgradesDatabase extends Command
     {
         $this->callInitialCommands();
         $commands = [
-            'upgrade:480-transaction-identifiers',
-            'upgrade:480-migrate-to-groups',
-            'upgrade:480-account-currencies',
-            'upgrade:480-transfer-currencies',
-            'upgrade:480-currency-information',
-            'upgrade:480-notes',
-            'upgrade:480-attachments',
-            'upgrade:480-bills-to-rules',
-            'upgrade:480-budget-limit-currencies',
-            'upgrade:480-cc-liabilities',
-            'upgrade:480-journal-meta-data',
-            'upgrade:480-account-meta',
-            'upgrade:481-recurrence-meta',
-            'upgrade:500-tag-locations',
-            'upgrade:560-liabilities',
+            //            'upgrade:480-transaction-identifiers',
+            //            'upgrade:480-migrate-to-groups',
+            //            'upgrade:480-account-currencies',
+            //            'upgrade:480-transfer-currencies',
+            //            'upgrade:480-currency-information',
+            //            'upgrade:480-notes',
+            //            'upgrade:480-attachments',
+            //            'upgrade:480-bills-to-rules',
+            //            'upgrade:480-budget-limit-currencies',
+            //            'upgrade:480-cc-liabilities',
+            //            'upgrade:480-journal-meta-data',
+            //            'upgrade:480-account-meta',
+            //            'upgrade:481-recurrence-meta',
+            //            'upgrade:500-tag-locations',
+            //            'upgrade:560-liabilities',
             'upgrade:600-liabilities',
             'upgrade:550-budget-limit-periods',
             'upgrade:600-rule-actions',
@@ -83,11 +85,17 @@ class UpgradesDatabase extends Command
             $args = ['--force' => true];
         }
         foreach ($commands as $command) {
-            $this->friendlyLine(sprintf('Now executing %s', $command));
+            $moment = date('H:i:s');
+            $this->friendlyLine(sprintf('[%s] Now executing command %s', $moment, $command));
+            $time   = microtime(true);
             $this->call($command, $args);
+            $time   = round(microtime(true) - $time, 2);
+            $moment = date('H:i:s');
+            $this->friendlyLine(sprintf('[%s] Command %s took %.4f seconds.', $moment, $command, $time));
         }
         // index will set FF3 version.
         AppConfiguration::set('ff3_build_time', (int) config('firefly.build_time'));
+        $this->generateInstallationId();
 
         return 0;
     }

@@ -24,8 +24,12 @@ declare(strict_types=1);
 
 namespace FireflyIII\Support\Search\QueryParser;
 
+use Illuminate\Support\Facades\Log;
+use LogicException;
+use Safe\Exceptions\PcreException;
 use SensitiveParameter;
 
+use function Safe\mb_convert_encoding;
 use function Safe\preg_split;
 
 /**
@@ -35,14 +39,30 @@ use function Safe\preg_split;
  */
 class QueryParser implements QueryParserInterface
 {
-    private int $position = 0;
-    private string $query;
+    private int $position       = 0;
+    private int $depth          = 0;
+
+    private const int MAX_DEPTH = 32;
+
+    // private string $query;
+    private array $chrArray     = [];
+    private int   $count        = 0;
 
     public function parse(string $query): NodeGroup
     {
         // Log::debug(sprintf('Parsing query in QueryParser: "%s"', $query));
-        $this->query    = $query;
+        // $this->query    = $query;
         $this->position = 0;
+
+        try {
+            $query          = mb_convert_encoding($query, 'UTF-8', 'UTF-8');
+
+            $this->chrArray = preg_split('//u', $query, -1, PREG_SPLIT_NO_EMPTY);
+        } catch (PcreException $e) {
+            Log::error($e->getMessage());
+            $this->chrArray = [];
+        }
+        $this->count    = count($this->chrArray);
 
         return $this->buildNodeGroup(false);
     }
@@ -53,12 +73,10 @@ class QueryParser implements QueryParserInterface
         $inQuotes               = false;
         $fieldName              = '';
         $prohibited             = false;
-        $chrArray               = preg_split('//u', $this->query, -1, PREG_SPLIT_NO_EMPTY);
-        $count                  = count($chrArray);
-        while ($this->position < $count) {
-            $char     = $chrArray[$this->position];
-            $nextChar = $chrArray[$this->position + 1] ?? '';
-            $prevChar = $chrArray[$this->position - 1] ?? '';
+        while ($this->position < $this->count) {
+            $char     = $this->chrArray[$this->position];
+            $nextChar = $this->chrArray[$this->position + 1] ?? '';
+            $prevChar = $this->chrArray[$this->position - 1] ?? '';
             // Log::debug(sprintf('Char #%d: %s', $this->position, $char));
 
             // If we're in a quoted string, we treat all characters except another quote as ordinary characters
@@ -112,10 +130,16 @@ class QueryParser implements QueryParserInterface
 
                 case '(':
                     if ('' === $tokenUnderConstruction) {
+                        if ($this->depth >= self::MAX_DEPTH) {
+                            throw new LogicException('Subquery nesting is too deep.');
+                        }
                         // A left parentheses at the beginning of a token indicates the start of a subquery
                         ++$this->position;
+                        ++$this->depth;
+                        $group = $this->buildNodeGroup(true, $prohibited);
+                        --$this->depth;
 
-                        return new NodeResult($this->buildNodeGroup(true, $prohibited), false);
+                        return new NodeResult($group, false);
                     }
                     // In any other location, it's just a normal character
                     $tokenUnderConstruction .= $char;

@@ -29,6 +29,7 @@ use FireflyIII\Api\V1\Requests\Models\Account\ShowRequest;
 use FireflyIII\Models\Account;
 use FireflyIII\Repositories\Account\AccountRepositoryInterface;
 use FireflyIII\Support\Http\Api\AccountFilter;
+use FireflyIII\Support\Http\Api\ChecksSortType;
 use FireflyIII\Support\JsonApi\Enrichments\AccountEnrichment;
 use FireflyIII\Transformers\AccountTransformer;
 use FireflyIII\User;
@@ -44,6 +45,7 @@ use League\Fractal\Resource\Item;
 final class ShowController extends Controller
 {
     use AccountFilter;
+    use ChecksSortType;
 
     public const string RESOURCE_KEY = 'accounts';
 
@@ -75,19 +77,22 @@ final class ShowController extends Controller
             'limit'  => $limit,
             'offset' => $offset,
             'sort'   => $sort,
+            'filter' => $filter,
             'start'  => $start,
             'end'    => $end,
+            'active' => $active,
             'date'   => $date,
         ]            = $request->attributes->all();
+
         // get list of accounts. Count it and split it.
         $this->repository->resetAccountOrder();
-        $collection  = $this->repository->getAccountsByType($types, $sort);
+        $collection  = $this->repository->getAccountsByType($types, $sort, $filter, $active);
         $count       = $collection->count();
-
-        // continue sort:
-        // TODO if the user sorts on DB dependent field there must be no slice before enrichment, only after.
-        // TODO still need to figure out how to do this easily.
-        $accounts    = $collection->slice($offset, $limit);
+        $dbFields    = $this->isAllDatabaseSort($sort, 'Account');
+        $accounts    = $collection;
+        if ($dbFields) {
+            $accounts = $collection->slice($offset, $limit);
+        }
 
         // enrich
         /** @var User $admin */
@@ -100,6 +105,10 @@ final class ShowController extends Controller
         $enrichment->setUser($admin);
         $accounts    = $enrichment->enrich($accounts);
 
+        if (!$dbFields) {
+            // now do the slicing.
+            $accounts = $accounts->slice($offset, $limit);
+        }
         // make paginator:
         $paginator   = new LengthAwarePaginator($accounts, $count, $limit, $page);
         $paginator->setPath(route('api.v1.accounts.index').$this->buildParams());

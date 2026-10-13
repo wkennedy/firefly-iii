@@ -1,10 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 /*
  * ShowRequest.php
- * Copyright (c) 2025 james@firefly-iii.org
+ * Copyright (c) 2026 james@firefly-iii.org
  *
  * This file is part of Firefly III (https://github.com/firefly-iii).
  *
@@ -22,11 +20,14 @@ declare(strict_types=1);
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+declare(strict_types=1);
+
 namespace FireflyIII\Api\V1\Requests\Models\Account;
 
 use FireflyIII\Api\V1\Requests\AggregateFormRequest;
 use FireflyIII\Api\V1\Requests\DateRangeRequest;
 use FireflyIII\Api\V1\Requests\DateRequest;
+use FireflyIII\Api\V1\Requests\Generic\ActiveObjectRequest;
 use FireflyIII\Api\V1\Requests\PaginationRequest;
 use FireflyIII\Models\Account;
 
@@ -37,6 +38,7 @@ class ShowRequest extends AggregateFormRequest
         return [
             [PaginationRequest::class, 'sort_class' => Account::class],
             DateRangeRequest::class,
+            ActiveObjectRequest::class,
             DateRequest::class,
             AccountTypeApiRequest::class,
             // [ObjectTypeApiRequest::class, 'object_type' => Account::class],

@@ -6,7 +6,7 @@ This is a **fork** of [firefly-iii/firefly-iii](https://github.com/firefly-iii/f
 
 | Branch             | Role                                                                                  | Rule                                           |
 |--------------------|---------------------------------------------------------------------------------------|------------------------------------------------|
-| `upstream/main`    | Upstream **releases only** (currently `v6.6.6`). Moves only when a version is tagged. | Read-only.                                     |
+| `upstream/main`    | Upstream **releases only** (currently `v6.7.9`). Moves only when a version is tagged. | Read-only.                                     |
 | `upstream/develop` | Upstream's daily work. Churns constantly.                                             | Never merge. Cherry-pick (`-x`) only if asked. |
 | `main`             | Pristine mirror of `upstream/main`.                                                   | **Fast-forward only. Never commit here.**      |
 | `custom`           | All fork work. Long-lived. The deployable branch.                                     | Merge `main` into it. **Never rebase it.**     |
@@ -20,9 +20,9 @@ This is a **fork** of [firefly-iii/firefly-iii](https://github.com/firefly-iii/f
 
 Conflicts only happen where our edits overlap upstream's. So:
 
-1. **Add, don't edit.** New classes go in fork-owned paths: `app/Fork/…` (namespace `FireflyIII\Fork\…`, already covered by the `FireflyIII\` PSR-4 root), `app/Providers/Fork*ServiceProvider.php`, `resources/views/fork/…`, `public/fork/…` (static assets: the v1 CSS overlay `public/fork/css/overlay*.css` and the Chart.js restyle `public/fork/js/charts-overlay.js`, switch `FORK_UI_OVERLAY`, default on, two one-line hooks in `layout/default.twig`), `database/migrations/<ts>_fork_*.php`. Build/deploy tooling lives in `.fork/` (+ root `.dockerignore`). **`app/Providers/ForkServiceProvider.php`** (registered last in `bootstrap/providers.php`) is where fork bindings and artisan commands are wired: today it rebinds `steam` (`FireflyIII\Fork\Support\Steam`, floatalize fix) and `TransactionJournalFactory` (`app/Fork/Factory`, wraps creation in a DB transaction), attaches `Fork\Dedup\ExternalIdObserver`, and registers the `firefly-iii:fork:*` commands (`app/Fork/Console/Commands/`). Feature switches live in `config/fork.php` (env `FORK_*`, all default off except the purely visual `FORK_UI_OVERLAY`, which defaults on). Fork API routes live in `routes/fork.php`, registered by the provider under `/api/v1/fork/*` with the `api` middleware group (route names `api.v1.fork.<resource>.<action>`, plain JSON, controllers in `app/Fork/Http/Controllers/`). Add new overrides there, not in upstream providers.
+1. **Add, don't edit.** New classes go in fork-owned paths: `app/Fork/…` (namespace `FireflyIII\Fork\…`, already covered by the `FireflyIII\` PSR-4 root), `app/Providers/Fork*ServiceProvider.php`, `resources/views/fork/…`, `public/fork/…` (static assets: the chat widget's `public/fork/css/chat.css` + `public/fork/js/chat.js`, loaded by `resources/views/fork/chat/widget.blade.php` through one `{{-- FORK --}}` `@include` in `layout/v3/session.blade.php`), `database/migrations/<ts>_fork_*.php`. Build/deploy tooling lives in `.fork/` (+ root `.dockerignore`). **`app/Providers/ForkServiceProvider.php`** (registered last in `bootstrap/providers.php`) is where fork bindings and artisan commands are wired: today it rebinds `steam` (`FireflyIII\Fork\Support\Steam`, floatalize fix) and `TransactionJournalFactory` (`app/Fork/Factory`, wraps creation in a DB transaction), attaches `Fork\Dedup\ExternalIdObserver`, and registers the `firefly-iii:fork:*` commands (`app/Fork/Console/Commands/`). Feature switches live in `config/fork.php` (env `FORK_*`, all default off). Fork API routes live in `routes/fork.php`, registered by the provider under `/api/v1/fork/*` with the `api` middleware group (route names `api.v1.fork.<resource>.<action>`, plain JSON, controllers in `app/Fork/Http/Controllers/`). Add new overrides there, not in upstream providers.
 2. When an upstream file *must* be touched, keep it to a one-line hook that delegates to fork code, and mark it:
-   `// FORK: <why>` in PHP, `{# FORK: <why> #}` in Twig, `{{-- FORK: <why> --}}` in Blade. The marker tells whoever resolves the next merge conflict which side is intentional.
+   `// FORK: <why>` in PHP, `{{-- FORK: <why> --}}` in Blade (views are Blade-only since v6.7.9). The marker tells whoever resolves the next merge conflict which side is intentional.
 3. **Never edit an existing migration.** Add a new one with a later timestamp. Prefer new tables (`fork_*`) over new columns on upstream tables.
 4. **Never hand-edit lockfiles.** `composer.lock` / `package-lock.json` change only via `composer`/`npm`. On merge conflict, take upstream's lockfile and re-run the package manager.
 5. **Never touch** `.github/workflows/*` (upstream CI — add fork CI as new, differently named files), `resources/lang/<non-en_US>/` (Crowdin-managed), or `changelog.md`/`releases.md`.
@@ -61,7 +61,8 @@ Registry address, deployment-repo path and any cluster-specific commands live **
 # prerequisite once per checkout: APP_ENV=testing php artisan firefly-iii:laravel-passport-keys   (integration tests 500 with "Invalid key supplied" without storage/oauth-*.key)
 # fork suite: vendor/bin/phpunit -c .fork/phpunit.xml --testsuite fork   (own tests; excluded from unit/integration in that config so nothing runs twice)
 # fork test support (tests/integration/Traits/): ForkTestSupport is hooked into TestCase — actingAs() also authenticates the Passport `api` guard and oauth keys are generated on demand; CreatesTransactionGroups gives createUser/createAccount/createWithdrawal|Deposit|Transfer/createTransactionGroup/createRule/createWebhook. Fork tests live in tests/{unit,integration}/Fork/.
-# known-failing upstream tests (v6.6.6, not ours): Api/Chart/{Budget,Category}ControllerTest::testGetOverviewChartFails expect 422 on a missing range but DateRangeRequest no longer requires it → 200
+# known-failing upstream tests (v6.7.9, not ours; also fail on pristine main): Api/Chart/{Budget,Category}ControllerTest::testGetOverviewChartFails expect 422 on a missing range but DateRangeRequest no longer requires it → 200;
+#   Api/Autocomplete/CurrencyControllerTest (2 tests) expect only enabled currencies but get 50
 composer unit-test            # tests/unit
 composer integration-test     # tests/integration  (seeds the DB via $seed = true)
 vendor/bin/phpunit -c phpunit.xml --testsuite feature --no-coverage
@@ -75,11 +76,10 @@ vendor/bin/mago lint
 .ci/rector.sh --dry-run       # optional
 php artisan blade:lint         # run by upstream CI; provided by a vendor package, skip if the command is unknown
 
-# frontend (npm workspaces: resources/assets/v1 and v2)
-npm install                                   # root; runs patch-package (patches/admin-lte+4.0.0.patch)
-npm --workspace resources/assets/v1 run prod  # Laravel Mix → public/v1 — FAILS from the workspace tree (vue-loader 17 is Vue-3-only);
-#   use: cd resources/assets/v1 && npm install --no-save --workspaces=false vue-loader@^15.11.1 && npm run prod   (what .fork/docker/Dockerfile does)
-npm --workspace resources/assets/v2 run build # Vite     → public/build
+# frontend (single npm workspace: resources/assets/v3 — v1/v2 were removed upstream in v6.7.9)
+npm ci --workspace resources/assets/v3        # root install
+npm --workspace resources/assets/v3 run build # Vite → public/build (what .fork/docker/Dockerfile does)
+# integration tests that render a v3 page need $this->withoutVite() — there is no public/build/manifest.json in tests
 
 # app
 php artisan serve
@@ -90,7 +90,7 @@ php artisan firefly-iii:verify-security-alerts
 
 ## Architecture map
 
-Request flow: `routes/*.php` → controller → `…RepositoryInterface` / `Services\Internal\*` / `Factory\*` → Eloquent model → `Transformers\*` (Fractal, API) or Twig/Blade view (web).
+Request flow: `routes/*.php` → controller → `…RepositoryInterface` / `Services\Internal\*` / `Factory\*` → Eloquent model → `Transformers\*` (Fractal, API) or Blade view (web).
 
 | Path                                                                | What                                                                                                                                                                                                                                                                 |
 |---------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -105,12 +105,12 @@ Request flow: `routes/*.php` → controller → `…RepositoryInterface` / `Serv
 | `app/TransactionRules/`                                             | Rule engine: `Engine/SearchRuleEngine`, `Actions/*` implement `ActionInterface`, wired by `Factory/ActionFactory` + `config/firefly.php`.                                                                                                                            |
 | `app/Handlers/Observer/`                                            | Eloquent observers (21). `app/Events/` + `app/Listeners/` (auto-discovered) handle side effects incl. webhooks.                                                                                                                                                      |
 | `app/Jobs/`                                                         | `CreateRecurringTransactions`, `DownloadExchangeRates`, `SendWebhookMessage`, `WarnAboutBills`, `CreateAutoBudgetLimits`, `MailError`. Cron entry points in `app/Support/Cronjobs/`.                                                                                 |
-| `app/Support/`                                                      | Facades (`Preferences`, `Steam`, `Amount`, `Navigation`, `AppConfiguration`), `Binder/` (route-model binding via `config/bindables.php`), `Twig/` extensions, `Search/`, `JsonApi/Enrichments/`.                                                                     |
+| `app/Support/`                                                      | Facades (`Preferences`, `Steam`, `Amount`, `Navigation`, `AppConfiguration`), `Binder/` (route-model binding via `config/bindables.php`), `Blade/` helpers, `Search/`, `JsonApi/Enrichments/`.                                                                     |
 | `app/Models/` (+ `app/User.php`)                                    | 50 Eloquent models. Money: `TransactionGroup` → `TransactionJournal` → ≥2 `Transaction` rows (negative source, positive destination). Amounts are **strings**, use `bcmath`, never floats.                                                                           |
 | `app/Console/Commands/{Upgrade,Correction,Integrity,System,Tools}`  | Artisan commands; `UpgradeSkeleton.php.stub` / `CorrectionSkeleton.php.stub` are templates for new ones.                                                                                                                                                             |
 | `bootstrap/app.php`, `bootstrap/providers.php`                      | Middleware groups (`web`, `api`, `user-full-auth`, `admin`, …), event discovery, provider list. `RouteServiceProvider` is a no-op stub.                                                                                                                              |
 | `config/firefly.php`                                                | The big one: type matrices (`expected_source_types`, `allowed_opposing_types`, `account_to_transaction`), `db_version`/`api_version`, feature flags, sort/filter whitelists.                                                                                         |
-| `resources/views/`                                                  | Twig templates for the default **v1** layout (AdminLTE 2, Vue 2.7 + jQuery, built by Laravel Mix from `resources/assets/v1`). `resources/views/v2/` = Blade + Alpine.js + AdminLTE 4 built by Vite from `resources/assets/v2`; enabled with `FIREFLY_III_LAYOUT=v2`. |
+| `resources/views/`                                                  | Blade views for the single **v3** UI (since v6.7.9; Twig and the v1/v2 layouts are gone): layouts in `layout/v3/*.blade.php` (`session` = logged-in pages), AdminLTE 4 + Bootstrap 5.3 + Bootstrap Icons, assets in `resources/assets/v3` built by Vite to `public/build`. |
 | `resources/lang/en_US/`                                             | Only editable locale. Strings via `trans('firefly.key')` / `__()`; add new keys at the end of the relevant file.                                                                                                                                                     |
 | `database/migrations/`                                              | 60 files; recent upstream ones are batched per month (`2026_04_13_185808_migrations_04_2026.php`). Seeders in `database/seeders/` (types, currencies, roles, link types).                                                                                            |
 | `tests/`                                                            | `unit/`, `integration/`, `feature/` = PHPUnit suites. Base class `tests/integration/TestCase.php` (`RefreshDatabase`, `$seed = true`, `createAuthenticatedUser()`). Coverage is thin (~38 test files), mostly `tests/integration/Api/`.                              |

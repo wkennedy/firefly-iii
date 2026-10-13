@@ -221,6 +221,8 @@ final class ChatTest extends TestCase
 
     public function testWidgetIsOnThePageOnlyWhenTheFlagIsOn(): void
     {
+        // The v3 layout emits its stylesheet through @vite; tests run without a built public/build.
+        $this->withoutVite();
         $this->signIn();
 
         $page = $this->get(route('preferences.index'));

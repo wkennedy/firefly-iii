@@ -47,18 +47,15 @@ GitHub auto-disables *scheduled* workflows on forks, but not the event-triggered
 **Dependabot off** too (`.github/dependabot.yml` targets a `develop` branch this fork lacks);
 `mergify.yml` and `CODEOWNERS` are inert without the app / those collaborators.
 
-## UI overlay (v1 layout)
+## UI hook (v3 layout)
 
-The v1 overlay is on by default; `FORK_UI_OVERLAY=false` restores the stock look. It loads `public/fork/css/overlay.css` (+ `overlay-dark.css`, following the user's dark-mode
-preference) after `firefly.css` on every v1 (Twig / AdminLTE 2) page, via a one-line `{# FORK #}` hook in
-`resources/views/layout/default.twig` that includes `resources/views/fork/layout/overlay.twig`. Pure CSS — no
-markup or JavaScript changes — so it can be switched off per deployment and discarded when upstream ships its
-Blade/Bootstrap 5 rewrite (`upstream/adminlte`). The login/register pages are already Blade upstream and are not touched.
-The same switch loads `public/fork/js/charts-overlay.js` after each page's own scripts (second one-line hook in
-`default.twig`, partial `resources/views/fork/layout/scripts.twig`): a global Chart.js 2.7 plugin that restyles every
-chart from the overlay's CSS tokens — palette, grid, tooltips, no point-per-datum lines, doughnuts with a legend and
-"top N + Other" grouping, theme-aware "today" marker — without editing upstream's `charts.js`.
-Compare locally: `.fork/dev-up.sh --seed --flags FORK_UI_OVERLAY=false` shows the stock look.
+The only fork markup on upstream's pages is the chat widget (`FORK_CHAT`, off by default): one
+`{{-- FORK --}}` `@include('fork.chat.widget')` line just before `</body>` in
+`resources/views/layout/v3/session.blade.php` (the logged-in layout). The partial
+`resources/views/fork/chat/widget.blade.php` renders nothing when the flag is off; otherwise it links
+`public/fork/css/chat.css` (styled from Bootstrap 5.3's CSS variables, so it follows the v3 light/dark theme) and
+`public/fork/js/chat.js` with the page's CSP nonce. The v1 CSS/Chart.js overlay (`FORK_UI_OVERLAY`) was dropped
+when upstream v6.7.9 removed the Twig layout.
 
 ## MCP server
 

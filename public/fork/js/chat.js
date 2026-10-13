@@ -19,9 +19,10 @@
  */
 
 /*
- * FORK: the in-app chat widget (FORK_CHAT). No dependencies — jQuery and AdminLTE are on the page
- * but nothing here needs them, and staying independent means an upstream asset change cannot break
- * it. Everything the page needs is on the root element's data attributes.
+ * FORK: the in-app chat widget (FORK_CHAT), loaded by resources/views/fork/chat/widget.blade.php on
+ * the v3 layout. No dependencies — jQuery, Bootstrap 5 and AdminLTE 4 are on the page but nothing
+ * here needs them, and staying independent means an upstream asset change cannot break it.
+ * Everything the page needs is on the root element's data attributes.
  *
  * The one security-relevant rule in this file: model output is NEVER assigned to innerHTML. Answers
  * are built as DOM nodes from a small markdown subset, so a shop name that happens to contain HTML

@@ -26,6 +26,7 @@ namespace Tests\integration\Fork\Console;
 
 use Carbon\Carbon;
 use FireflyIII\Enums\AutoBudgetType;
+use FireflyIII\Fork\Console\Commands\AutoBudgetCatchUp;
 use FireflyIII\Models\AutoBudget;
 use FireflyIII\Models\Budget;
 use FireflyIII\Models\BudgetLimit;
@@ -38,7 +39,7 @@ use Tests\integration\Traits\CreatesTransactionGroups;
 
 /**
  * FORK: firefly-iii:fork:auto-budget-catchup replays CreateAutoBudgetLimits for the
- * days a cron missed, sharing upstream's `last_ab_job` marker.
+ * days a cron missed, sharing upstream's per-user `last_ab_job_<id>` marker.
  *
  * @internal
  *
@@ -55,7 +56,7 @@ final class AutoBudgetCatchUpTest extends TestCase
         $this->today('2026-08-05 09:00:00');
         $user   = $this->createAuthenticatedUser();
         $budget = $this->monthlyResetBudget($user, '500');
-        $this->lastRun('2026-07-30');
+        $this->lastRun($user, '2026-07-30');
 
         $this->artisan(self::COMMAND)->assertExitCode(0);
         $this->artisan(self::COMMAND)->expectsOutputToContain('up to date')->assertExitCode(0);
@@ -72,7 +73,7 @@ final class AutoBudgetCatchUpTest extends TestCase
         $this->artisan(self::COMMAND)->expectsOutputToContain('never run')->assertExitCode(0);
 
         self::assertSame(0, $budget->budgetlimits()->count(), 'the 5th is not a magic day; no backfill without a marker');
-        self::assertSame($this->timestamp('2026-08-05'), (int) AppConfiguration::get('last_ab_job')->data);
+        self::assertSame($this->timestamp('2026-08-05'), (int) AppConfiguration::get(AutoBudgetCatchUp::marker($user))->data);
     }
 
     public function testRejectsBadDateAndOversizedRange(): void
@@ -90,7 +91,7 @@ final class AutoBudgetCatchUpTest extends TestCase
         $this->today('2026-08-05 09:00:00');
         $user   = $this->createAuthenticatedUser();
         $budget = $this->monthlyResetBudget($user, '500');
-        $this->lastRun('2026-07-30');
+        $this->lastRun($user, '2026-07-30');
 
         $this
             ->artisan(self::COMMAND)
@@ -102,7 +103,7 @@ final class AutoBudgetCatchUpTest extends TestCase
         self::assertNotNull($limit);
         self::assertSame('2026-08-01', $limit->start_date->format('Y-m-d'));
         self::assertSame('2026-08-31', $limit->end_date->format('Y-m-d'));
-        self::assertSame($this->timestamp('2026-08-05'), (int) AppConfiguration::get('last_ab_job')->data, 'marker must advance to today');
+        self::assertSame($this->timestamp('2026-08-05'), (int) AppConfiguration::get(AutoBudgetCatchUp::marker($user))->data, 'marker must advance to today');
     }
 
     public function testSinceOptionAndDryRun(): void
@@ -113,7 +114,7 @@ final class AutoBudgetCatchUpTest extends TestCase
 
         $this->artisan(self::COMMAND, ['--since' => '2026-08-01', '--dry-run' => true])->expectsOutputToContain('would run 2026-08-01')->assertExitCode(0);
         self::assertSame(0, $budget->budgetlimits()->count());
-        self::assertSame(0, (int) AppConfiguration::get('last_ab_job', 0)->data, 'dry run must not record a run');
+        self::assertSame(0, (int) AppConfiguration::get(AutoBudgetCatchUp::marker($user), 0)->data, 'dry run must not record a run');
 
         $this->artisan(self::COMMAND, ['--since' => '2026-08-01'])->assertExitCode(0);
         self::assertSame(1, $budget->budgetlimits()->count());
@@ -126,9 +127,9 @@ final class AutoBudgetCatchUpTest extends TestCase
         parent::tearDown();
     }
 
-    private function lastRun(string $date): void
+    private function lastRun(User $user, string $date): void
     {
-        AppConfiguration::set('last_ab_job', $this->timestamp($date));
+        AppConfiguration::set(AutoBudgetCatchUp::marker($user), $this->timestamp($date));
     }
 
     private function monthlyResetBudget(User $user, string $amount): Budget

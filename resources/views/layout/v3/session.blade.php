@@ -616,6 +616,7 @@
 @endif
 
 
+@include('fork.chat.widget') {{-- FORK: in-app chat assistant (FORK_CHAT), renders nothing when off --}}
 </body>
 <!--end::Body-->
 </html>

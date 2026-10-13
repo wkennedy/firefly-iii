@@ -25,7 +25,7 @@ declare(strict_types=1);
 /*
  * FORK: feature switches for fork behaviour. Every fork feature that changes behaviour defaults to
  * OFF here and is enabled per deployment through the environment, so an upstream sync or a bad
- * rollout can be neutralised without a code change (the purely visual ui_overlay is the exception).
+ * rollout can be neutralised without a code change.
  */
 return [
     // Reserve every transaction's external_id in fork_external_ids (unique per user group) inside
@@ -104,10 +104,4 @@ return [
     // is ~10 seconds, and a silent panel reads as broken. Set false if a proxy insists on buffering
     // the response despite the X-Accel-Buffering header; the widget then posts to /fork/chat.
     'chat_stream'     => (bool) env('FORK_CHAT_STREAM', true),
-
-    // Modern-look CSS overlay for the v1 (Twig / AdminLTE 2) layout: public/fork/css/overlay*.css,
-    // loaded after firefly.css by resources/views/fork/layout/overlay.twig. Purely visual, no
-    // markup or JS changes, follows the user's dark-mode preference. The one switch that is ON by
-    // default (it changes nothing but looks); FORK_UI_OVERLAY=false restores the stock upstream look.
-    'ui_overlay' => (bool) env('FORK_UI_OVERLAY', true)
 ];

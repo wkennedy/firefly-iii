@@ -1,25 +1,28 @@
-{# FORK: the in-app chat assistant (FORK_CHAT), included from layout/default.twig just before
-   </body>. Everything the script needs travels on data attributes — no inline JavaScript, so the
-   page's strict CSP (script-src 'strict-dynamic' + nonce) needs no exception.
+{{-- FORK: the in-app chat assistant (FORK_CHAT), included from layout/v3/session.blade.php just before
+     </body> through a one-line hook. Everything the script needs travels on data attributes — no inline
+     JavaScript, so the page's strict CSP (script-src 'strict-dynamic' + nonce) needs no exception. The
+     stylesheet is linked here too (a body <link rel="stylesheet"> is valid and keeps the hook to one line);
+     the panel starts hidden, so there is nothing to flash before it loads.
 
-   The posted date range is the one the page itself is showing (the Range middleware's session
-   values), so "this month" in a question means the same thing it means on screen. #}
-{% if Config.get('fork.chat') %}
+     The posted date range is the one the page itself is showing (the Range middleware's session
+     values), so "this month" in a question means the same thing it means on screen. --}}
+@if(config('fork.chat'))
+    <link href="fork/css/chat.css?v={{ $FF_BUILD_TIME }}" rel="stylesheet" type="text/css" nonce="{{ $JS_NONCE }}">
     <div id="fork-chat"
          class="fk-chat"
-         data-dark="{{ 'dark' == darkMode ? 'always' : ('browser' == darkMode ? 'browser' : 'never') }}"
+         data-dark="{{ 'dark' === ($darkMode ?? '') ? 'always' : ('browser' === ($darkMode ?? '') ? 'browser' : 'never') }}"
          data-stream-url="{{ route('fork.chat.stream') }}"
          data-send-url="{{ route('fork.chat.send') }}"
          data-apply-url="{{ route('fork.chat.apply') }}"
-         data-stream="{{ Config.get('fork.chat_stream') ? '1' : '0' }}"
+         data-stream="{{ config('fork.chat_stream') ? '1' : '0' }}"
          data-csrf="{{ csrf_token() }}"
-         data-start="{{ Session.has('start') ? Session.get('start')|date('Y-m-d') : '' }}"
-         data-end="{{ Session.has('end') ? Session.get('end')|date('Y-m-d') : '' }}">
+         data-start="{{ session()->has('start') ? \Carbon\Carbon::parse(session('start'))->format('Y-m-d') : '' }}"
+         data-end="{{ session()->has('end') ? \Carbon\Carbon::parse(session('end'))->format('Y-m-d') : '' }}">
 
         <button type="button" class="fk-chat__launcher" aria-expanded="false" aria-controls="fork-chat-panel"
                 title="Ask about your finances">
-            <span class="fa fa-comment" aria-hidden="true"></span>
-            <span class="sr-only">Ask about your finances</span>
+            <span class="bi bi-chat-dots" aria-hidden="true"></span>
+            <span class="visually-hidden">Ask about your finances</span>
         </button>
 
         <section id="fork-chat-panel" class="fk-chat__panel" role="dialog" aria-label="Ask about your finances" hidden>
@@ -51,5 +54,5 @@
         </section>
     </div>
 
-    <script type="text/javascript" src="fork/js/chat.js?v={{ FF_BUILD_TIME }}" nonce="{{ JS_NONCE }}"></script>
-{% endif %}
+    <script type="text/javascript" src="fork/js/chat.js?v={{ $FF_BUILD_TIME }}" nonce="{{ $JS_NONCE }}"></script>
+@endif

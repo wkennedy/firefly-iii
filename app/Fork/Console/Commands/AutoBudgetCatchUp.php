@@ -29,6 +29,7 @@ use FireflyIII\Console\Commands\ShowsFriendlyMessages;
 use FireflyIII\Jobs\CreateAutoBudgetLimits;
 use FireflyIII\Models\BudgetLimit;
 use FireflyIII\Support\Facades\AppConfiguration;
+use FireflyIII\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -36,7 +37,7 @@ use Illuminate\Support\Facades\Log;
  * FORK: CreateAutoBudgetLimits only creates a period's limit when it runs ON the
  * period's first day ("magic day"). A cron that misses the 1st therefore skips the
  * whole month, silently. This command replays the job for every day since the last
- * auto-budget run, sharing upstream's `last_ab_job` bookkeeping so `firefly-iii:cron`
+ * auto-budget run, sharing upstream's per-user `last_ab_job_<id>` bookkeeping so `firefly-iii:cron`
  * and this command never disagree about what has been done.
  *
  * Run it before `firefly-iii:cron` in the daily job. It is idempotent: the job itself
@@ -53,53 +54,74 @@ final class AutoBudgetCatchUp extends Command
         {--dry-run : List the days that would be processed without creating anything.}
         {--max-days=400 : Refuse to process a range longer than this many days.}';
 
+    /**
+     * Upstream's AutoBudgetCronjob keeps one marker per user.
+     */
+    public static function marker(User $user): string
+    {
+        return sprintf('last_ab_job_%d', $user->id);
+    }
+
     public function handle(): int
     {
         $timezone = config('app.timezone');
         $today    = today($timezone);
-        $since    = $this->firstDay($today, $timezone);
-        if (null === $since) {
-            return self::FAILURE;
-        }
-        if ($since->greaterThan($today)) {
-            $this->friendlyPositive(sprintf('Auto-budgets are up to date (last run covered %s).', $since->subDay()->format('Y-m-d')));
+        $maxDays  = (int) $this->option('max-days');
+        $dryRun   = (bool) $this->option('dry-run');
 
-            return self::SUCCESS;
-        }
+        // Plan every user's range first, so an oversized range fails before anything is created.
+        $plans = [];
 
-        $days    = (int) $since->diffInDays($today) + 1;
-        $maxDays = (int) $this->option('max-days');
-        if ($days > $maxDays) {
-            $this->friendlyError(sprintf(
-                'Range %s → %s is %d days, more than --max-days=%d. Pass --since to narrow it.',
-                $since->format('Y-m-d'),
-                $today->format('Y-m-d'),
-                $days,
-                $maxDays
-            ));
-
-            return self::FAILURE;
-        }
-
-        $dryRun = (bool) $this->option('dry-run');
-        $before = BudgetLimit::query()->count();
-        $this->friendlyInfo(sprintf(
-            '%s auto-budget job for %d day(s): %s → %s.',
-            $dryRun ? 'Would run' : 'Running',
-            $days,
-            $since->format('Y-m-d'),
-            $today->format('Y-m-d')
-        ));
-
-        for ($date = $since->clone(); $date->lessThanOrEqualTo($today); $date->addDay()) {
-            if ($dryRun) {
-                $this->friendlyLine(sprintf('  would run %s', $date->format('Y-m-d')));
+        /** @var User $user */
+        foreach (User::query()->orderBy('id')->get() as $user) {
+            $since = $this->firstDay($user, $today, $timezone);
+            if (null === $since) {
+                return self::FAILURE;
+            }
+            if ($since->greaterThan($today)) {
+                $this->friendlyPositive(sprintf('User #%d: auto-budgets are up to date (last run covered %s).', $user->id, $since->subDay()->format('Y-m-d')));
 
                 continue;
             }
-            Log::info(sprintf('FORK auto-budget catch-up: running CreateAutoBudgetLimits for %s', $date->format('Y-m-d')));
-            new CreateAutoBudgetLimits($date->clone())->handle();
-            AppConfiguration::set('last_ab_job', (int) $date->clone()->startOfDay()->format('U'));
+            $days = (int) $since->diffInDays($today) + 1;
+            if ($days > $maxDays) {
+                $this->friendlyError(sprintf(
+                    'User #%d: range %s → %s is %d days, more than --max-days=%d. Pass --since to narrow it.',
+                    $user->id,
+                    $since->format('Y-m-d'),
+                    $today->format('Y-m-d'),
+                    $days,
+                    $maxDays
+                ));
+
+                return self::FAILURE;
+            }
+            $plans[] = [$user, $since, $days];
+        }
+
+        $before = BudgetLimit::query()->count();
+        foreach ($plans as [$user, $since, $days]) {
+            $this->friendlyInfo(sprintf(
+                'User #%d: %s auto-budget job for %d day(s): %s → %s.',
+                $user->id,
+                $dryRun ? 'Would run' : 'Running',
+                $days,
+                $since->format('Y-m-d'),
+                $today->format('Y-m-d')
+            ));
+
+            for ($date = $since->clone(); $date->lessThanOrEqualTo($today); $date->addDay()) {
+                if ($dryRun) {
+                    $this->friendlyLine(sprintf('  would run %s', $date->format('Y-m-d')));
+
+                    continue;
+                }
+                Log::info(sprintf('FORK auto-budget catch-up: running CreateAutoBudgetLimits for %s, user #%d', $date->format('Y-m-d'), $user->id));
+                $job = new CreateAutoBudgetLimits($date->clone());
+                $job->setUser($user);
+                $job->handle();
+                AppConfiguration::set(self::marker($user), (int) $date->clone()->startOfDay()->format('U'));
+            }
         }
 
         if ($dryRun) {
@@ -108,12 +130,12 @@ final class AutoBudgetCatchUp extends Command
             return self::SUCCESS;
         }
         $created = BudgetLimit::query()->count() - $before;
-        $this->friendlyPositive(sprintf('Processed %d day(s), created %d budget limit(s).', $days, $created));
+        $this->friendlyPositive(sprintf('Processed %d user(s), created %d budget limit(s).', count($plans), $created));
 
         return self::SUCCESS;
     }
 
-    private function firstDay(Carbon $today, string $timezone): null|Carbon
+    private function firstDay(User $user, Carbon $today, string $timezone): null|Carbon
     {
         $option = $this->option('since');
         if (null !== $option && '' !== $option) {
@@ -127,9 +149,9 @@ final class AutoBudgetCatchUp extends Command
             return $since->startOfDay();
         }
 
-        $lastRun = (int) AppConfiguration::get('last_ab_job', 0)->data;
+        $lastRun = (int) AppConfiguration::get(self::marker($user), 0)->data;
         if (0 === $lastRun) {
-            $this->friendlyInfo('The auto-budget job has never run; starting from today.');
+            $this->friendlyInfo(sprintf('User #%d: the auto-budget job has never run; starting from today.', $user->id));
 
             return $today->clone();
         }

@@ -19,47 +19,54 @@
  */
 
 /*
- * FORK: the in-app chat widget (FORK_CHAT). Self-contained and scoped to .fk-chat so it cannot
- * disturb AdminLTE. Colours read the overlay's tokens when FORK_UI_OVERLAY is on and fall back to
- * their own palette when it is off — hence `var(--fk-x, fallback)` everywhere. Dark mode follows
- * the same three states Firefly uses (always / browser / never) through the data-dark attribute,
- * so an explicit "dark" preference in a light browser still gets a dark panel.
+ * FORK: the in-app chat widget (FORK_CHAT) on the v3 (Blade / AdminLTE 4 / Bootstrap 5.3) layout.
+ * Self-contained and scoped to .fk-chat so it cannot disturb the page. Colours read Bootstrap's own
+ * CSS variables, which already follow v3's resolved theme (`data-bs-theme` on <html>, including
+ * the "browser" preference and live switches from the navbar toggle), and fall back to a built-in
+ * palette when those variables are absent — hence `var(--bs-x, fallback)` everywhere. Without
+ * Bootstrap's theme attribute, dark mode falls back to the widget's data-dark attribute
+ * (always / browser / never, the three states Firefly stores).
  */
 
 .fk-chat {
-    --fkc-font: var(--fk-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
-    --fkc-mono: var(--fk-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-    --fkc-surface: var(--fk-surface, #ffffff);
-    --fkc-surface-2: var(--fk-surface-2, #f5f6f8);
-    --fkc-border: var(--fk-border, #e0e3e8);
-    --fkc-text: var(--fk-text, #1f2933);
-    --fkc-muted: var(--fk-muted, #6b7280);
-    --fkc-accent: var(--fk-accent, #2f6fb5);
-    --fkc-accent-soft: var(--fk-accent-soft, rgba(47, 111, 181, 0.12));
-    --fkc-danger: var(--fk-danger, #dc2626);
+    --fkc-font: var(--bs-body-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
+    --fkc-mono: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    --fkc-surface: var(--bs-body-bg, #ffffff);
+    --fkc-surface-2: var(--bs-tertiary-bg, #f5f6f8);
+    --fkc-border: var(--bs-border-color, #e0e3e8);
+    --fkc-text: var(--bs-body-color, #1f2933);
+    --fkc-muted: var(--bs-secondary-color, #6b7280);
+    --fkc-accent: var(--bs-primary, #1e6581);
+    --fkc-accent-soft: var(--bs-primary-bg-subtle, rgba(30, 101, 129, 0.12));
+    --fkc-danger: var(--bs-danger, #dc2626);
     --fkc-shadow: 0 12px 32px rgba(15, 18, 22, 0.18);
 }
 
-.fk-chat[data-dark="always"] {
-    --fkc-surface: var(--fk-surface, #171b21);
-    --fkc-surface-2: var(--fk-surface-2, #1e232a);
-    --fkc-border: var(--fk-border, #2a313a);
-    --fkc-text: var(--fk-text, #e4e7eb);
-    --fkc-muted: var(--fk-muted, #98a2b3);
-    --fkc-accent: var(--fk-accent, #5b9ce6);
-    --fkc-accent-soft: var(--fk-accent-soft, rgba(91, 156, 230, 0.18));
+[data-bs-theme="dark"] .fk-chat {
+    --fkc-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Fallback palette for a page without Bootstrap's colour-mode attribute. */
+html:not([data-bs-theme]) .fk-chat[data-dark="always"] {
+    --fkc-surface: #171b21;
+    --fkc-surface-2: #1e232a;
+    --fkc-border: #2a313a;
+    --fkc-text: #e4e7eb;
+    --fkc-muted: #98a2b3;
+    --fkc-accent: #5b9ce6;
+    --fkc-accent-soft: rgba(91, 156, 230, 0.18);
     --fkc-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
-    .fk-chat[data-dark="browser"] {
-        --fkc-surface: var(--fk-surface, #171b21);
-        --fkc-surface-2: var(--fk-surface-2, #1e232a);
-        --fkc-border: var(--fk-border, #2a313a);
-        --fkc-text: var(--fk-text, #e4e7eb);
-        --fkc-muted: var(--fk-muted, #98a2b3);
-        --fkc-accent: var(--fk-accent, #5b9ce6);
-        --fkc-accent-soft: var(--fk-accent-soft, rgba(91, 156, 230, 0.18));
+    html:not([data-bs-theme]) .fk-chat[data-dark="browser"] {
+        --fkc-surface: #171b21;
+        --fkc-surface-2: #1e232a;
+        --fkc-border: #2a313a;
+        --fkc-text: #e4e7eb;
+        --fkc-muted: #98a2b3;
+        --fkc-accent: #5b9ce6;
+        --fkc-accent-soft: rgba(91, 156, 230, 0.18);
         --fkc-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
 }
@@ -91,6 +98,13 @@
     box-shadow: var(--fkc-shadow);
     cursor: pointer;
     transition: transform 0.12s ease;
+}
+
+/* Bootstrap Icons glyph, centred in the round button whatever the icon font's own metrics. */
+.fk-chat__launcher .bi {
+    display: inline-block;
+    line-height: 1;
+    vertical-align: middle;
 }
 
 .fk-chat__launcher:hover,

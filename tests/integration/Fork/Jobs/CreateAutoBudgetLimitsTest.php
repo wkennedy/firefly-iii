@@ -76,7 +76,7 @@ final class CreateAutoBudgetLimitsTest extends TestCase
         $user = $this->createAuthenticatedUser();
         $this->actingAs($user);
         $budget = $this->budgetWithAutoBudget($user, 'Groceries', '500');
-        new CreateAutoBudgetLimits(Carbon::parse('2026-08-01', 'UTC'))->handle();
+        $this->runJob($user, Carbon::parse('2026-08-01', 'UTC'));
 
         $payload = ['start' => '2026-08-01', 'end' => '2026-08-31', 'amount' => '500', 'currency_code' => 'EUR'];
         $this
@@ -96,7 +96,7 @@ final class CreateAutoBudgetLimitsTest extends TestCase
         $budget->active = false;
         $budget->save();
 
-        new CreateAutoBudgetLimits(Carbon::parse('2026-08-01', 'UTC'))->handle();
+        $this->runJob($user, Carbon::parse('2026-08-01', 'UTC'));
 
         self::assertSame(0, BudgetLimit::query()->count());
     }
@@ -112,7 +112,7 @@ final class CreateAutoBudgetLimitsTest extends TestCase
         $user   = $this->createAuthenticatedUser();
         $budget = $this->budgetWithAutoBudget($user, 'Groceries', '500');
 
-        new CreateAutoBudgetLimits(Carbon::parse('2026-08-02', 'UTC'))->handle();
+        $this->runJob($user, Carbon::parse('2026-08-02', 'UTC'));
 
         self::assertSame(0, $budget->budgetlimits()->count());
     }
@@ -122,7 +122,7 @@ final class CreateAutoBudgetLimitsTest extends TestCase
         $user   = $this->createAuthenticatedUser();
         $budget = $this->budgetWithAutoBudget($user, 'Groceries', '500');
 
-        new CreateAutoBudgetLimits(Carbon::parse('2026-08-01', 'UTC'))->handle();
+        $this->runJob($user, Carbon::parse('2026-08-01', 'UTC'));
 
         self::assertSame(1, $budget->budgetlimits()->count());
         $limit = $budget->budgetlimits()->first();
@@ -130,8 +130,8 @@ final class CreateAutoBudgetLimitsTest extends TestCase
         self::assertSame('2026-08-31', $limit->end_date->format('Y-m-d'));
         self::assertSame(0, bccomp('500', (string) $limit->amount, 2));
 
-        new CreateAutoBudgetLimits(Carbon::parse('2026-08-01', 'UTC'))->handle();
-        new CreateAutoBudgetLimits(Carbon::parse('2026-08-01 23:59:59', 'UTC'))->handle();
+        $this->runJob($user, Carbon::parse('2026-08-01', 'UTC'));
+        $this->runJob($user, Carbon::parse('2026-08-01 23:59:59', 'UTC'));
         self::assertSame(1, $budget->budgetlimits()->count(), 'running the job twice on the magic day must not duplicate the limit');
     }
 
@@ -164,5 +164,12 @@ final class CreateAutoBudgetLimitsTest extends TestCase
         $method = new ReflectionMethod($job, 'isMagicDay');
 
         return $method->invoke($job, new AutoBudget(['period' => $period]));
+    }
+
+    private function runJob(User $user, Carbon $date): void
+    {
+        $job = new CreateAutoBudgetLimits($date);
+        $job->setUser($user);
+        $job->handle();
     }
 }

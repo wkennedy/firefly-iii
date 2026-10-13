@@ -46,9 +46,9 @@ final class CalculateTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'Work out an arithmetic expression exactly. Use this for EVERY calculation - percentages, differences, per-week or per-day figures, totals across rows - instead of doing the arithmetic yourself. Write percentages as decimals (30% of 250 is "0.30 * 250"). Numbers and + - * / ( ) only.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'expression' => ['type' => 'string', 'description' => 'For example "1071.56 / 3" or "(2200 + 411.88) * 0.25".']

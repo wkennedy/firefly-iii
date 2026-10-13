@@ -46,9 +46,9 @@ final class UnbudgetedSpendingTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'Spending between two dates that has no budget attached, grouped by category. Use for "what is not covered by a budget" or when budget_status shows money outside the budgets and the person asks what it was.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'start' => ['type' => 'string', 'description' => 'First day of the period, YYYY-MM-DD.'],

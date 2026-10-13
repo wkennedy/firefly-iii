@@ -49,9 +49,9 @@ final class AccountBalancesTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'Current balance of every asset account and liability, with totals per currency. Use for "how much do I have", "what is my balance", "how much do I owe". Optionally as of a past date.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'date' => ['type' => 'string', 'description' => 'Balance as it was at the end of this day, YYYY-MM-DD. Defaults to today.']

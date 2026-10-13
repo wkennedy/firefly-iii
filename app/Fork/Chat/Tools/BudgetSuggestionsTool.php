@@ -45,9 +45,9 @@ final class BudgetSuggestionsTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'What each category has actually cost per month over recent complete months (mean, median, 75th percentile, max), next to the budget that exists today. Use for "what should my budget be", "is my budget realistic". This only suggests; it changes nothing.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'months' => ['type' => 'integer', 'description' => 'How many complete months to look back over. Defaults to 6.']

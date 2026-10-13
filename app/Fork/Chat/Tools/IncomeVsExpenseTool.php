@@ -47,9 +47,9 @@ final class IncomeVsExpenseTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'Total income, total spending and the difference between two dates, per currency. Use for "did I save money", "how much came in", "what is my net for the month". Transfers between your own accounts are not counted either way.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'start' => ['type' => 'string', 'description' => 'First day of the period, YYYY-MM-DD.'],

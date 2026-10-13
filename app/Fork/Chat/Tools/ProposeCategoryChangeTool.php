@@ -54,9 +54,9 @@ final class ProposeCategoryChangeTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'Propose changing the category of ONE transaction, by its id from search_transactions. This does not change anything by itself: it shows the person a confirmation card, and only their click applies it. Say that you have prepared the change and that they need to confirm it - never say it is done.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'transaction_id' => ['type' => 'integer', 'description' => 'The "id" field of a transaction returned by search_transactions.'],

@@ -40,9 +40,9 @@ final class ListAccountsTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'List the accounts in this ledger: asset accounts (current accounts, savings, cards) and liabilities (loans, debts, mortgages). Call this before answering anything that names an account.',
-            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
+            'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
         ];
     }
 

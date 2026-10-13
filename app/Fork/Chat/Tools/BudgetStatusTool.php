@@ -57,9 +57,9 @@ final class BudgetStatusTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'How each budget is doing between two dates: amount spent, the limit, what is left and the percentage used, plus any spending that no budget covers. Use for "am I over budget", "how is my X budget", "how much is left".',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'start' => ['type' => 'string', 'description' => 'First day of the period, YYYY-MM-DD.'],

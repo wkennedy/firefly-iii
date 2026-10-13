@@ -39,9 +39,9 @@ final class ListCategoriesTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'List the names of the categories that exist in this ledger. Call this first whenever a question mentions a category, so you use names that really exist.',
-            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
+            'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
         ];
     }
 

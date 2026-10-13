@@ -42,9 +42,9 @@ final class ListBudgetsTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'List the active budgets and their recurring (auto-budget) amount, if any. Call this before answering anything that names a budget. For spent-vs-limit figures use budget_status.',
-            'parameters'  => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
+            'parameters' => ['type' => 'object', 'properties' => new \stdClass(), 'required' => []]
         ];
     }
 

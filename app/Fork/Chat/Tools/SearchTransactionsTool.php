@@ -48,9 +48,9 @@ final class SearchTransactionsTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'List individual transactions between two dates. Use this for "what did I buy at X", "show me transactions over 100", "what was my biggest purchase" (order_by amount_desc, limit 1), or whenever the person asks about specific transactions rather than a total. Returns at most a limited number of rows plus the total number that matched.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'start'      => ['type' => 'string', 'description' => 'First day of the range, YYYY-MM-DD.'],

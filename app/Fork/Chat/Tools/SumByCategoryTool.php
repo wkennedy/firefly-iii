@@ -45,9 +45,9 @@ final class SumByCategoryTool implements ChatTool
     public function definition(): array
     {
         return [
-            'name'        => $this->name(),
+            'name' => $this->name(),
             'description' => 'Total spending (or income) per category between two dates. Use this for "how much did I spend on X", "what did I spend most on", or any per-category total. Returns exact amounts per currency, already summed - never add these up yourself, call calculate instead.',
-            'parameters'  => [
+            'parameters' => [
                 'type'       => 'object',
                 'properties' => [
                     'start'      => ['type' => 'string', 'description' => 'First day of the range, YYYY-MM-DD.'],
